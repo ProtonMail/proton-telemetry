@@ -1,0 +1,44 @@
+default:
+    image: node:latest
+    interruptible: true
+
+stages:
+    - install
+    - test
+    - publish
+
+variables:
+    NPM_CONFIG_REGISTRY: "https://nexus.protontech.ch/repository/web-npm/"
+
+install:
+    stage: install
+    except:
+        - tags
+    script:
+        - npm ci --no-audit
+    artifacts:
+        expire_in: 1 hours
+        paths:
+            - node_modules
+
+test:
+    stage: test
+    except:
+        - tags
+    script:
+        - npm test
+
+publish:
+    stage: publish
+    only:
+        - /^v\d+\.\d+\.\d+$/
+    script:
+        # Configure npm for Nexus
+        - echo "//nexus.protontech.ch/repository/web-npm/:_auth=${NPM_AUTH_TOKEN}" > .npmrc
+        - echo "@proton:registry=https://nexus.protontech.ch/repository/web-npm/" >> .npmrc
+        # Clear any global npm configs that might interfere
+        - unset npm_config_registry
+        - unset npm_config_cafile
+        # Build and publish
+        - npm run build
+        - npm publish
