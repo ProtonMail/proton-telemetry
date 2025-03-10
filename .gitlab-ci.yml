@@ -14,8 +14,10 @@ install:
     stage: install
     except:
         - tags
+    before_script:
+        - npm install -g pnpm
     script:
-        - npm ci --no-audit
+        - pnpm install --frozen-lockfile
     artifacts:
         expire_in: 1 hours
         paths:
@@ -26,12 +28,14 @@ test:
     except:
         - tags
     script:
-        - npm test
+        - pnpm test
 
 publish:
     stage: publish
     only:
         - /^v\d+\.\d+\.\d+$/
+    before_script:
+        - npm install -g pnpm
     script:
         # Configure npm for Nexus
         - echo "//nexus.protontech.ch/repository/web-npm/:_auth=${NPM_AUTH_TOKEN}" > .npmrc
@@ -40,5 +44,5 @@ publish:
         - unset npm_config_registry
         - unset npm_config_cafile
         # Build and publish
-        - npm run build
-        - npm publish
+        - pnpm run build
+        - pnpm publish --no-git-checks
