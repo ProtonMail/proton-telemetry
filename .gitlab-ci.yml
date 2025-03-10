@@ -42,6 +42,7 @@ build:
     <<: *pnpm_setup
     stage: build
     script:
+        - pnpm install --frozen-lockfile
         - pnpm run build
     artifacts:
         paths:
