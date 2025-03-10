@@ -5,37 +5,55 @@ default:
 stages:
     - install
     - test
+    - build
     - publish
 
 variables:
     NPM_CONFIG_REGISTRY: "https://nexus.protontech.ch/repository/web-npm/"
 
+.pnpm_setup: &pnpm_setup
+    before_script:
+        - npm install -g pnpm
+
 install:
+    <<: *pnpm_setup
     stage: install
     except:
         - tags
-    before_script:
-        - npm install -g pnpm
     script:
         - pnpm install --frozen-lockfile
     artifacts:
         expire_in: 1 hours
         paths:
             - node_modules
+            - pnpm-lock.yaml
 
 test:
+    <<: *pnpm_setup
     stage: test
     except:
         - tags
     script:
         - pnpm test
+    dependencies:
+        - install
+
+build:
+    <<: *pnpm_setup
+    stage: build
+    script:
+        - pnpm run build
+    artifacts:
+        paths:
+            - dist
+    dependencies:
+        - install
 
 publish:
+    <<: *pnpm_setup
     stage: publish
     only:
         - /^v\d+\.\d+\.\d+$/
-    before_script:
-        - npm install -g pnpm
     script:
         # Configure npm for Nexus
         - echo "//nexus.protontech.ch/repository/web-npm/:_auth=${NPM_AUTH_TOKEN}" > .npmrc
@@ -43,6 +61,7 @@ publish:
         # Clear any global npm configs that might interfere
         - unset npm_config_registry
         - unset npm_config_cafile
-        # Build and publish
-        - pnpm run build
+        # Publish
         - pnpm publish --no-git-checks
+    dependencies:
+        - build
