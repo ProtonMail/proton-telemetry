@@ -1,0 +1,21 @@
+{
+    "name": "@protonme/analytics",
+    "version": "0.1.0",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+        "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "build": "tsc --noEmit false --declaration --module es2022 --moduleResolution bundler --outDir dist --rootDir src",
+        "test": "vitest run",
+        "test:cover": "vitest run --coverage",
+        "lint": "eslint --quiet"
+    },
+    "devDependencies": {
+        "@vitest/coverage-v8": "2.1.9",
+        "vitest": "2.1.8",
+        "happy-dom": "15.11.7"
+    }
+}
