@@ -26,9 +26,9 @@
     },
     "devDependencies": {
         "@types/node": "^22.13.10",
-        "@vitest/coverage-v8": "2.1.9",
-        "happy-dom": "15.11.7",
+        "@vitest/coverage-v8": "^2.1.9",
+        "happy-dom": "^15.11.7",
         "typescript": "^5.3.3",
-        "vitest": "2.1.8"
+        "vitest": "^2.1.8"
     }
 }
