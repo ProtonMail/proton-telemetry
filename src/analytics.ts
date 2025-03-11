@@ -17,13 +17,14 @@ import {
     generateMessageId,
     getFormattedUTCTimezone,
 } from "./utils";
+import { version as packageVersion } from "../package.json";
 
 export const createAnalytics = (config: AnalyticsConfig) => {
     const state = {
         config: {
             debug: false,
             dryRun: false,
-            appVersion: "0.1.0",
+            appVersion: packageVersion,
             events: {
                 pageView: true,
                 click: true,
