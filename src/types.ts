@@ -1,6 +1,5 @@
 export interface AnalyticsConfig {
     endpoint: string;
-    siteId: string;
     debug?: boolean;
     dryRun?: boolean;
     appVersion?: string;
@@ -51,13 +50,13 @@ export interface Screen {
 export type ABTestFeatures = Record<string, string>;
 
 export type StandardEventType =
-    | 'page_view'
-    | 'click'
-    | 'form_submit'
-    | 'performance'
-    | 'exit'
-    | 'modal_view'
-    | 'random_uid_created';
+    | "page_view"
+    | "click"
+    | "form_submit"
+    | "performance"
+    | "exit"
+    | "modal_view"
+    | "random_uid_created";
 
 export type CustomEventType = string;
 
@@ -102,7 +101,7 @@ export type ExitEventData = BaseEventData & {
 
 export type ModalEventData = BaseEventData & {
     modalId: string;
-    modalType: 'on_click' | 'exit_intent';
+    modalType: "on_click" | "exit_intent";
     timeToShow: number;
 };
 
@@ -165,19 +164,19 @@ export interface NavigatorUAData {
 }
 
 export type PageType =
-    | 'landing_page'
-    | 'support_kb'
-    | 'blog'
-    | 'legal'
-    | 'pricing'
-    | 'download'
-    | 'other';
+    | "landing_page"
+    | "support_kb"
+    | "blog"
+    | "legal"
+    | "pricing"
+    | "download"
+    | "other";
 
 export interface BatchedAnalyticsEvents {
     events: AnalyticsEvent[];
 }
 
-export type EventPriority = 'high' | 'low';
+export type EventPriority = "high" | "low";
 
 export interface QueuedEvent {
     event: AnalyticsEvent;
