@@ -1,0 +1,68 @@
+default:
+    image: node:latest
+    interruptible: true
+
+stages:
+    - install
+    - test
+    - build
+    - publish
+
+variables:
+    NPM_CONFIG_REGISTRY: "https://nexus.protontech.ch/repository/web-npm/"
+
+.pnpm_setup: &pnpm_setup
+    before_script:
+        - npm install -g pnpm
+
+install:
+    <<: *pnpm_setup
+    stage: install
+    except:
+        - tags
+    script:
+        - pnpm install --frozen-lockfile
+    artifacts:
+        expire_in: 1 hours
+        paths:
+            - node_modules
+            - pnpm-lock.yaml
+
+test:
+    <<: *pnpm_setup
+    stage: test
+    except:
+        - tags
+    script:
+        - pnpm test
+    dependencies:
+        - install
+
+build:
+    <<: *pnpm_setup
+    stage: build
+    script:
+        - pnpm install --frozen-lockfile
+        - pnpm run build
+    artifacts:
+        paths:
+            - dist
+    dependencies:
+        - install
+
+publish:
+    <<: *pnpm_setup
+    stage: publish
+    only:
+        - /^v\d+\.\d+\.\d+$/
+    script:
+        # Configure npm for Nexus with the correct auth token format
+        - echo "//nexus.protontech.ch/repository/web-npm/:_authToken=${NPM_AUTH_TOKEN}" > .npmrc
+        - echo "registry=https://nexus.protontech.ch/repository/web-npm/" >> .npmrc
+        - echo "@proton:registry=https://nexus.protontech.ch/repository/web-npm/" >> .npmrc
+        # Rest of the publish steps...
+        - pnpm install --frozen-lockfile
+        - pnpm run build
+        - pnpm publish --no-git-checks
+    dependencies:
+        - build

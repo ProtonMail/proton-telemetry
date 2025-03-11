@@ -1,11 +1,17 @@
 {
-    "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src",
+        "target": "ES2020",
+        "module": "ES2022",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "skipLibCheck": true,
         "declaration": true,
-        "sourceMap": true
+        "esModuleInterop": true,
+        "outDir": "dist",
+        "rootDir": "src",
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "types": ["node", "vitest/globals"]
     },
-    "include": ["src/**/*.ts", "src/**/*.d.ts"],
-    "exclude": ["node_modules", "dist", "coverage"]
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist"]
 }
