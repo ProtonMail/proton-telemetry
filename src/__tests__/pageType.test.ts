@@ -1,8 +1,8 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { createAnalytics as ProtonAnalytics } from '../analytics';
-import type { PageType } from '../types';
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import { createAnalytics as ProtonAnalytics } from "../analytics";
+import type { PageType } from "../types";
 
-describe('ProtonAnalytics - Page Type Detection', () => {
+describe("ProtonAnalytics - Page Type Detection", () => {
     let analytics: ReturnType<typeof ProtonAnalytics>;
 
     beforeEach(() => {
@@ -10,23 +10,23 @@ describe('ProtonAnalytics - Page Type Detection', () => {
             getItem: vi.fn(),
             setItem: vi.fn(),
         };
-        vi.stubGlobal('localStorage', localStorageMock);
+        vi.stubGlobal("localStorage", localStorageMock);
 
-        vi.stubGlobal('document', {
+        vi.stubGlobal("document", {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             querySelectorAll: vi.fn().mockReturnValue([]),
             hidden: false,
-            title: '',
+            title: "",
             documentElement: {
                 scrollHeight: 2000,
             },
         });
 
-        vi.stubGlobal('window', {
+        vi.stubGlobal("window", {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
-            location: { pathname: '/' },
+            location: { pathname: "/" },
             screen: {
                 width: 1920,
                 height: 1080,
@@ -35,37 +35,36 @@ describe('ProtonAnalytics - Page Type Detection', () => {
         });
 
         analytics = ProtonAnalytics({
-            endpoint: 'https://analytics.test.com',
-            siteId: 'test-site',
+            endpoint: "https://analytics.test.com",
         });
 
-        vi.spyOn(analytics, 'trackPageView');
+        vi.spyOn(analytics, "trackPageView");
     });
 
     const testCases: Array<{ path: string; expectedType: PageType }> = [
-        { path: '/support/mail/', expectedType: 'support_kb' },
-        { path: '/support/troubleshooting/', expectedType: 'support_kb' },
-        { path: '/blog', expectedType: 'blog' },
-        { path: '/blog/news', expectedType: 'blog' },
-        { path: '/blog/pass-lifetime', expectedType: 'blog' },
-        { path: '/legal/privacy', expectedType: 'legal' },
-        { path: '/legal/terms', expectedType: 'legal' },
-        { path: '/mail/download', expectedType: 'download' },
-        { path: '/l/freedom-dis-deal', expectedType: 'landing_page' },
-        { path: '/l/mail-plans', expectedType: 'landing_page' },
+        { path: "/support/mail/", expectedType: "support_kb" },
+        { path: "/support/troubleshooting/", expectedType: "support_kb" },
+        { path: "/blog", expectedType: "blog" },
+        { path: "/blog/news", expectedType: "blog" },
+        { path: "/blog/pass-lifetime", expectedType: "blog" },
+        { path: "/legal/privacy", expectedType: "legal" },
+        { path: "/legal/terms", expectedType: "legal" },
+        { path: "/mail/download", expectedType: "download" },
+        { path: "/l/freedom-dis-deal", expectedType: "landing_page" },
+        { path: "/l/mail-plans", expectedType: "landing_page" },
     ];
 
     testCases.forEach(({ path, expectedType }) => {
         it(`detects ${expectedType} page type for path ${path}`, () => {
-            vi.stubGlobal('window', {
+            vi.stubGlobal("window", {
                 ...window,
                 addEventListener: vi.fn(),
                 removeEventListener: vi.fn(),
                 location: {
                     pathname: path,
                     href: `https://test.com${path}`,
-                    search: '',
-                    hash: '',
+                    search: "",
+                    hash: "",
                 },
                 screen: {
                     width: 1920,
@@ -79,18 +78,18 @@ describe('ProtonAnalytics - Page Type Detection', () => {
         });
     });
 
-    it('handles paths with query parameters', () => {
-        const path = '/blog/test-post';
-        const search = '?ref=hero&otherparam=somevalue';
+    it("handles paths with query parameters", () => {
+        const path = "/blog/test-post";
+        const search = "?ref=hero&otherparam=somevalue";
 
-        vi.stubGlobal('window', {
+        vi.stubGlobal("window", {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             location: {
                 pathname: path,
                 href: `https://test.com${path}${search}`,
                 search,
-                hash: '',
+                hash: "",
             },
             screen: {
                 width: 1920,
@@ -103,17 +102,17 @@ describe('ProtonAnalytics - Page Type Detection', () => {
         expect(analytics.trackPageView).toHaveBeenCalled();
     });
 
-    it('handles paths with hash fragments', () => {
-        const path = '/business/plans?group=vpn';
-        const hash = '#compare-plans';
+    it("handles paths with hash fragments", () => {
+        const path = "/business/plans?group=vpn";
+        const hash = "#compare-plans";
 
-        vi.stubGlobal('window', {
+        vi.stubGlobal("window", {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             location: {
                 pathname: path,
                 href: `https://test.com${path}${hash}`,
-                search: '',
+                search: "",
                 hash,
             },
             screen: {

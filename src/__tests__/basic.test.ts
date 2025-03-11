@@ -1,7 +1,7 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { createAnalytics as ProtonAnalytics } from '../analytics';
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import { createAnalytics as ProtonAnalytics } from "../analytics";
 
-describe('ProtonAnalytics - Basic Functionality', () => {
+describe("ProtonAnalytics - Basic Functionality", () => {
     let analytics: ReturnType<typeof ProtonAnalytics>;
 
     beforeEach(() => {
@@ -9,11 +9,11 @@ describe('ProtonAnalytics - Basic Functionality', () => {
             getItem: vi.fn(),
             setItem: vi.fn(),
         };
-        vi.stubGlobal('localStorage', localStorageMock);
+        vi.stubGlobal("localStorage", localStorageMock);
 
-        vi.stubGlobal('window', {
+        vi.stubGlobal("window", {
             addEventListener: vi.fn(),
-            location: { pathname: '/' },
+            location: { pathname: "/" },
             screen: {
                 width: 1920,
                 height: 1080,
@@ -24,34 +24,33 @@ describe('ProtonAnalytics - Basic Functionality', () => {
             scrollY: 0,
         });
 
-        vi.stubGlobal('document', {
+        vi.stubGlobal("document", {
             addEventListener: vi.fn(),
             querySelectorAll: vi.fn().mockReturnValue([]),
             hidden: false,
-            title: '',
+            title: "",
             documentElement: {
                 scrollHeight: 2000,
             },
         });
 
-        vi.stubGlobal('navigator', {
+        vi.stubGlobal("navigator", {
             doNotTrack: null,
-            language: 'en',
+            language: "en",
         });
 
         analytics = ProtonAnalytics({
-            endpoint: 'https://analytics.test.com',
-            siteId: 'test-site',
+            endpoint: "https://analytics.test.com",
         });
 
-        vi.spyOn(analytics, 'trackPageView');
+        vi.spyOn(analytics, "trackPageView");
     });
 
-    it('initializes with correct config', () => {
+    it("initializes with correct config", () => {
         expect(analytics).toBeDefined();
     });
 
-    it('tracks page views', () => {
+    it("tracks page views", () => {
         analytics.trackPageView();
         expect(analytics.trackPageView).toHaveBeenCalled();
     });
