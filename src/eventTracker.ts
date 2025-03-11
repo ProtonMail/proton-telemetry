@@ -6,14 +6,14 @@ import type {
     FormEventData,
     ModalEventData,
     ExitEventData,
-} from './types';
-import { getPageType, getABTestFeatures, getElementText } from './utils';
+} from "./types";
+import { getPageType, getABTestFeatures, getElementText } from "./utils";
 
 export const createEventTracker = (
     sendData: (
         eventType: EventType,
         eventData: EventData,
-        customData?: Record<string, unknown>,
+        customData?: Record<string, unknown>
     ) => Promise<boolean>,
     pageLoadTime: number,
     config: {
@@ -24,7 +24,7 @@ export const createEventTracker = (
         visibility: boolean;
         modal: boolean;
     },
-    shouldTrack: () => boolean,
+    shouldTrack: () => boolean
 ) => {
     const state = {
         pageStartTime: performance.now(),
@@ -64,7 +64,7 @@ export const createEventTracker = (
             state.totalActiveTime += now - state.activeStartTime;
         }
 
-        void sendData('exit', {
+        void sendData("exit", {
             timeOnPage: Math.round(timeOnPage),
             activeTime: Math.round(state.totalActiveTime),
         } as ExitEventData);
@@ -75,8 +75,8 @@ export const createEventTracker = (
         if (!target) return;
 
         // Ensure we have valid coordinates (some synthetic events don't have them)
-        const xPos = typeof event.clientX === 'number' ? event.clientX : 0;
-        const yPos = typeof event.clientY === 'number' ? event.clientY : 0;
+        const xPos = typeof event.pageX === "number" ? event.pageX : 0;
+        const yPos = typeof event.pageY === "number" ? event.pageY : 0;
 
         const clickData: ClickEventData = {
             elementType: target.tagName.toLowerCase(),
@@ -87,7 +87,7 @@ export const createEventTracker = (
             yPos,
         };
 
-        void sendData('click', clickData);
+        void sendData("click", clickData);
     }
 
     function trackFormSubmit(event: SubmitEvent) {
@@ -102,13 +102,13 @@ export const createEventTracker = (
                 .filter(Boolean),
         };
 
-        void sendData('form_submit', formData);
+        void sendData("form_submit", formData);
     }
 
     if (document.addEventListener) {
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('beforeunload', handlePageExit);
-        window.addEventListener('pagehide', handlePageExit);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("beforeunload", handlePageExit);
+        window.addEventListener("pagehide", handlePageExit);
     }
 
     resetTimeTracking();
@@ -130,36 +130,42 @@ export const createEventTracker = (
                 referrer: document.referrer,
             };
 
-            void sendData('page_view', pageViewData, {
+            void sendData("page_view", pageViewData, {
                 features: getABTestFeatures(),
             });
         },
         initClickTracking: () => {
             if (!config.click) return;
-            document.addEventListener('click', trackClick);
+            document.addEventListener("click", trackClick);
         },
         initFormTracking: () => {
             if (!config.form) return;
-            document.addEventListener('submit', trackFormSubmit);
+            document.addEventListener("submit", trackFormSubmit);
         },
-        trackModalView: (modalId: string, modalType: 'on_click' | 'exit_intent') => {
+        trackModalView: (
+            modalId: string,
+            modalType: "on_click" | "exit_intent"
+        ) => {
             if (!config.modal) return;
             const modalData: ModalEventData = {
                 modalId,
                 modalType,
                 timeToShow: Math.round(performance.now() - pageLoadTime),
             };
-            void sendData('modal_view', modalData);
+            void sendData("modal_view", modalData);
         },
         destroy: () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('beforeunload', handlePageExit);
-            window.removeEventListener('pagehide', handlePageExit);
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange
+            );
+            window.removeEventListener("beforeunload", handlePageExit);
+            window.removeEventListener("pagehide", handlePageExit);
             if (config.click) {
-                document.removeEventListener('click', trackClick);
+                document.removeEventListener("click", trackClick);
             }
             if (config.form) {
-                document.removeEventListener('submit', trackFormSubmit);
+                document.removeEventListener("submit", trackFormSubmit);
             }
         },
     };
