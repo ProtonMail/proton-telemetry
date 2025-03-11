@@ -1,2 +1,5 @@
-export { createAnalytics as ProtonAnalytics } from './analytics';
-export type { AnalyticsConfig, AnalyticsEvent } from './types';
+export {
+    createAnalytics as ProtonAnalytics,
+    createCustomEventTracker,
+} from "./analytics";
+export type { AnalyticsConfig, AnalyticsEvent } from "./types";
