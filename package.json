@@ -1,12 +1,19 @@
 {
     "name": "@proton/analytics",
-    "version": "0.1.2",
+    "version": "0.1.4",
     "main": "./dist/index.js",
     "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
-        ".": "./src/index.ts"
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.js"
+        }
     },
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "build": "tsc --noEmit false --declaration --module es2022 --moduleResolution bundler --outDir dist --rootDir src",
         "test": "vitest run",
