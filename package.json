@@ -9,7 +9,7 @@
         ".": "./src/index.ts"
     },
     "scripts": {
-        "build": "tsc --noEmit false --declaration --module es2022 --moduleResolution bundler --outDir dist --rootDir src",
+        "build": "tsc",
         "test": "vitest run",
         "test:cover": "vitest run --coverage",
         "lint": "eslint --quiet",
