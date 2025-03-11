@@ -4,6 +4,7 @@
     "main": "./dist/index.js",
     "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
+    "files": ["dist"],
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
@@ -15,7 +16,7 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsc --noEmit false --declaration --module es2022 --moduleResolution bundler --outDir dist --rootDir src",
+        "build": "tsc",
         "test": "vitest run",
         "test:cover": "vitest run --coverage",
         "lint": "eslint --quiet",
@@ -37,5 +38,6 @@
         "happy-dom": "^15.11.7",
         "typescript": "^5.3.3",
         "vitest": "^2.1.8"
-    }
+    },
+    "packageManager": "pnpm@9.15.6+sha512.139cab068fdf0b751268179ac5f909b5be72afb4a75c513d1905d151befc8977b593d3cf8671ed83d4d6637c5c94b98ffbce108125de4a5a27a31233601a99de"
 }
