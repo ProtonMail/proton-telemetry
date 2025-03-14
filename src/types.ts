@@ -2,7 +2,7 @@ export interface AnalyticsConfig {
     endpoint: string;
     debug?: boolean;
     dryRun?: boolean;
-    appVersion?: string;
+    appVersion: string;
     events?: {
         pageView?: boolean;
         click?: boolean;

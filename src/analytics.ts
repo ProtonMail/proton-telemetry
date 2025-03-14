@@ -1,5 +1,5 @@
-import { createEventTracker } from "./eventTracker";
-import { createPerformanceTracker } from "./performanceTracker";
+import { createEventTracker } from './eventTracker';
+import { createPerformanceTracker } from './performanceTracker';
 import type {
     AnalyticsConfig,
     AnalyticsEvent,
@@ -11,20 +11,18 @@ import type {
     CustomEventData,
     CustomEventType,
     StandardEventType,
-} from "./types";
+} from './types';
 import {
     fetchWithHeaders,
     generateMessageId,
     getFormattedUTCTimezone,
-} from "./utils";
-import { version as packageVersion } from "../package.json";
+} from './utils';
 
 export const createAnalytics = (config: AnalyticsConfig) => {
     const state = {
         config: {
             debug: false,
             dryRun: false,
-            appVersion: packageVersion,
             events: {
                 pageView: true,
                 click: true,
@@ -35,10 +33,10 @@ export const createAnalytics = (config: AnalyticsConfig) => {
             },
             ...config,
         } as Required<AnalyticsConfig>,
-        anonymousId: "",
+        anonymousId: '',
         pageLoadTime: 0,
-        userTimezone: "",
-        userLanguage: "",
+        userTimezone: '',
+        userLanguage: '',
         isInitialized: false,
         eventQueue: [] as QueuedEvent[],
         batchTimeout: null as NodeJS.Timeout | null,
@@ -48,10 +46,10 @@ export const createAnalytics = (config: AnalyticsConfig) => {
     function shouldTrack(): boolean {
         const dnt = navigator.doNotTrack || window.doNotTrack;
         const gpc = navigator.globalPrivacyControl;
-        const shouldTrack = !(dnt === "1" || dnt === "yes" || gpc === true);
+        const shouldTrack = !(dnt === '1' || dnt === 'yes' || gpc === true);
 
-        if (!shouldTrack && localStorage.getItem("aId")) {
-            localStorage.removeItem("aId");
+        if (!shouldTrack && localStorage.getItem('aId')) {
+            localStorage.removeItem('aId');
         }
 
         return shouldTrack;
@@ -61,13 +59,13 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         eventType: EventType,
         eventData: EventData,
         customData?: Record<string, unknown>,
-        priority: EventPriority = "high"
+        priority: EventPriority = 'high'
     ): Promise<boolean> {
         const event = createEventPayload(eventType, eventData, customData);
 
         if (state.config.dryRun) {
             // eslint-disable-next-line no-console
-            console.log("[DRY RUN] event:", event);
+            console.log('[DRY RUN] event:', event);
             return true;
         }
 
@@ -86,7 +84,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
                     }
 
                     const hasHighPriorityEvents = state.eventQueue.some(
-                        (queuedEvent) => queuedEvent.priority === "high"
+                        (queuedEvent) => queuedEvent.priority === 'high'
                     );
 
                     if (!hasHighPriorityEvents) {
@@ -102,8 +100,9 @@ export const createAnalytics = (config: AnalyticsConfig) => {
 
                     const response = await fetchWithHeaders(
                         state.config.endpoint,
+                        state.config.appVersion,
                         {
-                            method: "POST",
+                            method: 'POST',
                             body: JSON.stringify(batchedEvents),
                             keepalive: true,
                         }
@@ -116,7 +115,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
                     resolve(response.ok);
                 } catch (error) {
                     if (state.config.debug) {
-                        console.error("Analytics error:", error);
+                        console.error('Analytics error:', error);
                     }
                     resolve(false);
                 }
@@ -136,21 +135,21 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         });
 
         const now = new Date();
-        const utcTimestamp = now.toISOString().replace("Z", "+00:00");
+        const utcTimestamp = now.toISOString().replace('Z', '+00:00');
 
         const offset = -now.getTimezoneOffset();
         const offsetHours = Math.floor(Math.abs(offset) / 60)
             .toString()
-            .padStart(2, "0");
+            .padStart(2, '0');
         const offsetMinutes = (Math.abs(offset) % 60)
             .toString()
-            .padStart(2, "0");
-        const offsetSign = offset >= 0 ? "+" : "-";
+            .padStart(2, '0');
+        const offsetSign = offset >= 0 ? '+' : '-';
         const localTimestamp = new Date(
             now.getTime() - now.getTimezoneOffset() * 60000
         )
             .toISOString()
-            .replace("Z", `${offsetSign}${offsetHours}:${offsetMinutes}`);
+            .replace('Z', `${offsetSign}${offsetHours}:${offsetMinutes}`);
 
         return {
             anonymousId: state.anonymousId,
@@ -160,14 +159,14 @@ export const createAnalytics = (config: AnalyticsConfig) => {
             eventType,
             context: {
                 campaign: {
-                    name: urlParams.get("utm_campaign") || "",
-                    source: urlParams.get("utm_source") || "",
-                    medium: urlParams.get("utm_medium") || "",
-                    term: urlParams.get("utm_term") || "",
-                    content: urlParams.get("utm_content") || "",
+                    name: urlParams.get('utm_campaign') || '',
+                    source: urlParams.get('utm_source') || '',
+                    medium: urlParams.get('utm_medium') || '',
+                    term: urlParams.get('utm_term') || '',
+                    content: urlParams.get('utm_content') || '',
                 },
                 library: {
-                    name: "proton-analytics",
+                    name: 'proton-analytics',
                     version: state.config.appVersion,
                 },
                 browserLocale: state.userLanguage,
@@ -180,8 +179,8 @@ export const createAnalytics = (config: AnalyticsConfig) => {
                     queryParams,
                 },
                 referrer: {
-                    type: "",
-                    name: "",
+                    type: '',
+                    name: '',
                     url: document.referrer,
                 },
                 screen: {
@@ -201,7 +200,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
     }
 
     function getOrCreateAnonymousId(): string {
-        const storageKey = "aId";
+        const storageKey = 'aId';
         const stored = localStorage.getItem(storageKey);
 
         if (stored) {
@@ -213,7 +212,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         localStorage.setItem(storageKey, newId);
         state.anonymousId = newId;
 
-        void sendData("random_uid_created", {}, undefined, "low");
+        void sendData('random_uid_created', {}, undefined, 'low');
 
         return newId;
     }
@@ -222,7 +221,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         state.anonymousId = getOrCreateAnonymousId();
         state.pageLoadTime = performance.now();
         state.userTimezone = getFormattedUTCTimezone();
-        state.userLanguage = navigator.language || "en";
+        state.userLanguage = navigator.language || 'en';
     }
 
     const eventTracker = createEventTracker(
@@ -269,7 +268,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         },
         trackModalView: (
             modalId: string,
-            modalType: "on_click" | "exit_intent"
+            modalType: 'on_click' | 'exit_intent'
         ) => {
             if (!shouldTrack()) return;
             eventTracker.trackModalView(modalId, modalType);
@@ -295,15 +294,19 @@ export const createAnalytics = (config: AnalyticsConfig) => {
                 };
 
                 try {
-                    await fetchWithHeaders(state.config.endpoint, {
-                        method: "POST",
-                        body: JSON.stringify(batchedEvents),
-                        keepalive: true,
-                    });
+                    await fetchWithHeaders(
+                        state.config.endpoint,
+                        state.config.appVersion,
+                        {
+                            method: 'POST',
+                            body: JSON.stringify(batchedEvents),
+                            keepalive: true,
+                        }
+                    );
                     state.eventQueue = [];
                 } catch (error) {
                     if (state.config.debug) {
-                        console.error("Analytics error:", error);
+                        console.error('Analytics error:', error);
                     }
                 }
             }

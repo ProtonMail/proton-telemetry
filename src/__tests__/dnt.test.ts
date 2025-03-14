@@ -53,6 +53,7 @@ describe("ProtonAnalytics - Do Not Track Functionality", () => {
 
         const analytics = ProtonAnalytics({
             endpoint: "https://analytics.test.com",
+            appVersion: 'appVersion',
         });
 
         // Mock trackPageView to verify it's not actually sending data
@@ -73,6 +74,7 @@ describe("ProtonAnalytics - Do Not Track Functionality", () => {
 
         const analytics = ProtonAnalytics({
             endpoint: "https://analytics.test.com",
+            appVersion: 'appVersion',
         });
 
         // Mock trackPageView to verify it's not actually sending data
@@ -97,6 +99,7 @@ describe("ProtonAnalytics - Do Not Track Functionality", () => {
 
         const analytics = ProtonAnalytics({
             endpoint: "https://analytics.test.com",
+            appVersion: 'appVersion',
         });
 
         analytics.trackPageView();

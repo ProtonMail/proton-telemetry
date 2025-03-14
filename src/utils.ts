@@ -4,15 +4,9 @@ export const generateMessageId = (): string => {
     return crypto.randomUUID();
 };
 
-export const getAppVersion = (): string => {
-    const versionApp = process.env.VERSION?.match(/^[vV](\d+)\.(\d+)\.(\d+)\+(.*)$/);
-    const app = versionApp ? `web-static-${versionApp[4].replace('-', '')}` : 'web-static';
-    const version = versionApp ? `${versionApp[1]}.${versionApp[2]}.${versionApp[3]}` : '0.0.0';
-    return `${app}@${version}`;
-};
-
 export const fetchWithHeaders = async (
     input: RequestInfo | URL,
+    appVersion: string,
     init?: RequestInit,
 ): Promise<Response> => {
     const prevPage: HeadersInit = document?.referrer ? { 'X-PM-Referer': document.referrer } : {};
@@ -29,7 +23,7 @@ export const fetchWithHeaders = async (
             ...prevPage,
             'Content-Type': 'application/json;charset=utf-8',
             Accept: 'application/vnd.protonmail.v1+json',
-            'x-pm-appversion': getAppVersion(),
+            'x-pm-appversion': appVersion
         },
     });
 };

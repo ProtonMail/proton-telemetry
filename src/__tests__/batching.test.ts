@@ -82,6 +82,7 @@ describe("ProtonAnalytics - Event Batching", () => {
     it("batches multiple events and sends them together", async () => {
         const analytics = ProtonAnalytics({
             endpoint: "https://analytics.test.com",
+            appVersion: 'appVersion',
             events: {
                 pageView: false, // Disable automatic page view tracking
                 click: false,
@@ -116,6 +117,7 @@ describe("ProtonAnalytics - Event Batching", () => {
     it("flushes remaining events on destroy", async () => {
         const analytics = ProtonAnalytics({
             endpoint: "https://analytics.test.com",
+            appVersion: 'appVersion',
             events: {
                 pageView: false, // Disable automatic page view tracking
                 click: false,

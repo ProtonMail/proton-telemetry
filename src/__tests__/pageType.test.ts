@@ -36,6 +36,7 @@ describe("ProtonAnalytics - Page Type Detection", () => {
 
         analytics = ProtonAnalytics({
             endpoint: "https://analytics.test.com",
+            appVersion: 'appVersion',
         });
 
         vi.spyOn(analytics, "trackPageView");
