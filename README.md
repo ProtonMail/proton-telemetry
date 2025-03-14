@@ -32,6 +32,7 @@ import { ProtonAnalytics } from '@proton/analytics'
 // define endpoint as one of either https://telemetry.proton.me/payload or https://telemetry.protonvpn.com/payload
 const analytics = ProtonAnalytics({
     endpoint,
+    appVersion: 'web-static@3.14.1'
 });
 
 window.protonAnalytics = analytics;
