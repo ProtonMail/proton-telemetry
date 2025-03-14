@@ -19,13 +19,14 @@
         "test": "vitest run",
         "test:cover": "vitest run --coverage",
         "lint": "eslint --quiet",
+        "release:prepare": "pnpm run lint && pnpm run test && pnpm run build",
+        "release:patch": "pnpm run release:prepare && npm version patch -m 'chore: release %s' --no-git-tag-version && node scripts/release.js",
+        "release:minor": "pnpm run release:prepare && npm version minor -m 'chore: release %s' --no-git-tag-version && node scripts/release.js",
+        "release:major": "pnpm run release:prepare && npm version major -m 'chore: release %s' --no-git-tag-version && node scripts/release.js",
         "version:patch": "npm version patch",
         "version:minor": "npm version minor",
         "version:major": "npm version major",
         "publish:prepare": "npm run build && git add dist -f",
-        "release:patch": "npm run publish:prepare && npm run version:patch",
-        "release:minor": "npm run publish:prepare && npm run version:minor",
-        "release:major": "npm run publish:prepare && npm run version:major",
         "push:tags": "git push --follow-tags"
     },
     "publishConfig": {
