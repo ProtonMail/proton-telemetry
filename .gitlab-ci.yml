@@ -1,6 +1,8 @@
 default:
     image: node:latest
     interruptible: true
+    tags:
+        - shared-small
 
 stages:
     - install
@@ -9,7 +11,7 @@ stages:
     - publish
 
 variables:
-    NPM_CONFIG_REGISTRY: "https://nexus.protontech.ch/repository/web-npm/"
+    NPM_CONFIG_REGISTRY: 'https://nexus.protontech.ch/repository/web-npm/'
 
 .pnpm_setup: &pnpm_setup
     before_script:

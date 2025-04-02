@@ -1,13 +1,12 @@
 import { createEventTracker } from './eventTracker';
 import { createPerformanceTracker } from './performanceTracker';
+import { BATCH_DELAY, BASE_DELAY, MAX_RETRIES, MAX_DELAY } from './constants';
 import type {
     AnalyticsConfig,
     AnalyticsEvent,
     BatchedAnalyticsEvents,
-    EventPriority,
     QueuedEvent,
     EventType,
-    EventData,
     CustomEventData,
     CustomEventType,
     StandardEventType,
@@ -17,6 +16,7 @@ import {
     generateMessageId,
     getFormattedUTCTimezone,
 } from './utils';
+import { createSendData } from './sendData';
 
 export const createAnalytics = (config: AnalyticsConfig) => {
     const state = {
@@ -40,7 +40,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         isInitialized: false,
         eventQueue: [] as QueuedEvent[],
         batchTimeout: null as NodeJS.Timeout | null,
-        BATCH_DELAY: 200,
+        retryCount: 0,
     };
 
     function shouldTrack(): boolean {
@@ -55,73 +55,22 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         return shouldTrack;
     }
 
-    async function sendData(
-        eventType: EventType,
-        eventData: EventData,
-        customData?: Record<string, unknown>,
-        priority: EventPriority = 'high'
-    ): Promise<boolean> {
-        const event = createEventPayload(eventType, eventData, customData);
-
-        if (state.config.dryRun) {
-            // eslint-disable-next-line no-console
-            console.log('[DRY RUN] event:', event);
-            return true;
+    const sendData = createSendData(
+        {
+            config: {
+                debug: state.config.debug,
+                dryRun: state.config.dryRun,
+                endpoint: state.config.endpoint,
+                appVersion: state.config.appVersion,
+            },
+            eventQueue: state.eventQueue,
+            batchTimeout: state.batchTimeout,
+            retryCount: state.retryCount,
+        },
+        {
+            createEventPayload,
         }
-
-        state.eventQueue.push({ event, priority });
-
-        if (state.batchTimeout) {
-            clearTimeout(state.batchTimeout);
-        }
-
-        return new Promise((resolve) => {
-            state.batchTimeout = setTimeout(async () => {
-                try {
-                    if (state.eventQueue.length === 0) {
-                        resolve(true);
-                        return;
-                    }
-
-                    const hasHighPriorityEvents = state.eventQueue.some(
-                        (queuedEvent) => queuedEvent.priority === 'high'
-                    );
-
-                    if (!hasHighPriorityEvents) {
-                        resolve(true);
-                        return;
-                    }
-
-                    const batchedEvents: BatchedAnalyticsEvents = {
-                        events: state.eventQueue.map(
-                            (queuedEvent) => queuedEvent.event
-                        ),
-                    };
-
-                    const response = await fetchWithHeaders(
-                        state.config.endpoint,
-                        state.config.appVersion,
-                        {
-                            method: 'POST',
-                            body: JSON.stringify(batchedEvents),
-                            keepalive: true,
-                        }
-                    );
-
-                    if (response.ok) {
-                        state.eventQueue = [];
-                    }
-
-                    resolve(response.ok);
-                } catch (error) {
-                    if (state.config.debug) {
-                        console.error('Analytics error:', error);
-                    }
-                    resolve(false);
-                }
-            }, state.BATCH_DELAY);
-        });
-    }
+    );
 
     function createEventPayload(
         eventType: EventType,
