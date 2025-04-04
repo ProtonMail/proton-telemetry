@@ -225,7 +225,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         trackCustomEvent: (
             eventType: Exclude<string, StandardEventType>,
             properties: CustomEventData,
-            customData: Record<string, unknown>
+            customData?: Record<string, unknown>
         ) => {
             if (!shouldTrack()) return;
             void sendData(eventType as CustomEventType, properties, customData);
