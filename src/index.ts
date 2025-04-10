@@ -1,5 +1,5 @@
 export {
-    createAnalytics as ProtonAnalytics,
-    createCustomEventTracker,
-} from "./analytics";
-export type { AnalyticsConfig, AnalyticsEvent } from "./types";
+    createTelemetry as ProtonTelemetry,
+    createCustomEventSender,
+} from './telemetry';
+export type { TelemetryConfig, TelemetryEvent } from './types';

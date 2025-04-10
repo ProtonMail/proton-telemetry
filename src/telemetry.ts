@@ -1,10 +1,9 @@
-import { createEventTracker } from './eventTracker';
-import { createPerformanceTracker } from './performanceTracker';
-import { BATCH_DELAY, BASE_DELAY, MAX_RETRIES, MAX_DELAY } from './constants';
+import { createEventSender } from './eventSender';
+import { createPerformanceObserver } from './performanceObserver';
 import type {
-    AnalyticsConfig,
-    AnalyticsEvent,
-    BatchedAnalyticsEvents,
+    TelemetryConfig,
+    TelemetryEvent,
+    BatchedTelemetryEvents,
     QueuedEvent,
     EventType,
     CustomEventData,
@@ -18,7 +17,7 @@ import {
 } from './utils';
 import { createSendData } from './sendData';
 
-export const createAnalytics = (config: AnalyticsConfig) => {
+export const createTelemetry = (config: TelemetryConfig) => {
     const state = {
         config: {
             debug: false,
@@ -32,8 +31,8 @@ export const createAnalytics = (config: AnalyticsConfig) => {
                 modal: false,
             },
             ...config,
-        } as Required<AnalyticsConfig>,
-        anonymousId: '',
+        } as Required<TelemetryConfig>,
+        aId: '',
         pageLoadTime: 0,
         userTimezone: '',
         userLanguage: '',
@@ -43,16 +42,16 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         retryCount: 0,
     };
 
-    function shouldTrack(): boolean {
+    function shouldSend(): boolean {
         const dnt = navigator.doNotTrack || window.doNotTrack;
         const gpc = navigator.globalPrivacyControl;
-        const shouldTrack = !(dnt === '1' || dnt === 'yes' || gpc === true);
+        const shouldSend = !(dnt === '1' || dnt === 'yes' || gpc === true);
 
-        if (!shouldTrack && localStorage.getItem('aId')) {
+        if (!shouldSend && localStorage.getItem('aId')) {
             localStorage.removeItem('aId');
         }
 
-        return shouldTrack;
+        return shouldSend;
     }
 
     const sendData = createSendData(
@@ -76,7 +75,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         eventType: EventType,
         eventData: Record<string, unknown>,
         customData?: Record<string, unknown>
-    ): AnalyticsEvent {
+    ): TelemetryEvent {
         const urlParams = new URLSearchParams(window.location.search);
         const queryParams: Record<string, string> = {};
         urlParams.forEach((value, key) => {
@@ -101,7 +100,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
             .replace('Z', `${offsetSign}${offsetHours}:${offsetMinutes}`);
 
         return {
-            anonymousId: state.anonymousId,
+            aId: state.aId,
             messageId: generateMessageId(),
             clientEventTimestampUtc: utcTimestamp,
             clientEventTimestampLocal: localTimestamp,
@@ -115,7 +114,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
                     content: urlParams.get('utm_content') || '',
                 },
                 library: {
-                    name: 'proton-analytics',
+                    name: 'proton-telemetry',
                     version: state.config.appVersion,
                 },
                 browserLocale: state.userLanguage,
@@ -148,32 +147,32 @@ export const createAnalytics = (config: AnalyticsConfig) => {
         };
     }
 
-    function getOrCreateAnonymousId(): string {
+    function getOrCreateAId(): string {
         const storageKey = 'aId';
         const stored = localStorage.getItem(storageKey);
 
         if (stored) {
-            state.anonymousId = stored;
+            state.aId = stored;
             return stored;
         }
 
         const newId = generateMessageId();
         localStorage.setItem(storageKey, newId);
-        state.anonymousId = newId;
+        state.aId = newId;
 
         void sendData('random_uid_created', {}, undefined, 'low');
 
         return newId;
     }
 
-    if (shouldTrack()) {
-        state.anonymousId = getOrCreateAnonymousId();
+    if (shouldSend()) {
+        state.aId = getOrCreateAId();
         state.pageLoadTime = performance.now();
         state.userTimezone = getFormattedUTCTimezone();
         state.userLanguage = navigator.language || 'en';
     }
 
-    const eventTracker = createEventTracker(
+    const eventSender = createEventSender(
         sendData,
         state.pageLoadTime,
         {
@@ -184,50 +183,50 @@ export const createAnalytics = (config: AnalyticsConfig) => {
             visibility: Boolean(state.config.events.visibility),
             modal: Boolean(state.config.events.modal),
         },
-        shouldTrack
+        shouldSend
     );
-    const performanceTracker = createPerformanceTracker(sendData);
+    const performanceObserver = createPerformanceObserver(sendData);
 
-    if (shouldTrack()) {
+    if (shouldSend()) {
         if (state.config.events.pageView) {
-            eventTracker.trackPageView();
+            eventSender.sendPageView();
         }
 
         if (state.config.events.click) {
-            eventTracker.initClickTracking();
+            eventSender.initClickSending();
         }
 
         if (state.config.events.performance) {
-            performanceTracker.initializeObserver();
+            performanceObserver.initializeObserver();
         }
     }
 
     return {
-        trackPageView: () => {
-            if (!shouldTrack()) return;
-            eventTracker.trackPageView();
+        sendPageView: () => {
+            if (!shouldSend()) return;
+            eventSender.sendPageView();
         },
-        trackClicks: () => {
-            if (!shouldTrack()) return;
-            eventTracker.initClickTracking();
+        sendClicks: () => {
+            if (!shouldSend()) return;
+            eventSender.initClickSending();
         },
-        trackForms: () => {
-            if (!shouldTrack()) return;
-            eventTracker.initFormTracking();
+        sendForms: () => {
+            if (!shouldSend()) return;
+            eventSender.initFormSending();
         },
-        trackModalView: (
+        sendModalView: (
             modalId: string,
             modalType: 'on_click' | 'exit_intent'
         ) => {
-            if (!shouldTrack()) return;
-            eventTracker.trackModalView(modalId, modalType);
+            if (!shouldSend()) return;
+            eventSender.sendModalView(modalId, modalType);
         },
-        trackCustomEvent: (
+        sendCustomEvent: (
             eventType: Exclude<string, StandardEventType>,
             properties: CustomEventData,
             customData?: Record<string, unknown>
         ) => {
-            if (!shouldTrack()) return;
+            if (!shouldSend()) return;
             void sendData(eventType as CustomEventType, properties, customData);
         },
         destroy: async () => {
@@ -236,7 +235,7 @@ export const createAnalytics = (config: AnalyticsConfig) => {
             }
 
             if (state.eventQueue.length > 0) {
-                const batchedEvents: BatchedAnalyticsEvents = {
+                const batchedEvents: BatchedTelemetryEvents = {
                     events: state.eventQueue.map(
                         (queuedEvent) => queuedEvent.event
                     ),
@@ -255,21 +254,21 @@ export const createAnalytics = (config: AnalyticsConfig) => {
                     state.eventQueue = [];
                 } catch (error) {
                     if (state.config.debug) {
-                        console.error('Analytics error:', error);
+                        console.error('Telemetry error:', error);
                     }
                 }
             }
 
-            eventTracker.destroy();
+            eventSender.destroy();
         },
     };
 };
 
-export const createCustomEventTracker = (
-    analytics: ReturnType<typeof createAnalytics>,
+export const createCustomEventSender = (
+    telemetry: ReturnType<typeof createTelemetry>,
     eventType: string,
     properties: CustomEventData = {},
     customData: Record<string, unknown> = {}
 ) => {
-    return () => analytics.trackCustomEvent(eventType, properties, customData);
+    return () => telemetry.sendCustomEvent(eventType, properties, customData);
 };

@@ -1,7 +1,7 @@
 import type { EventType, EventData, PerformanceEventData } from './types';
 
-export function createPerformanceTracker(
-    sendData: (eventType: EventType, eventData: EventData) => Promise<boolean>,
+export function createPerformanceObserver(
+    sendData: (eventType: EventType, eventData: EventData) => Promise<boolean>
 ) {
     return {
         initializeObserver: () => {
@@ -10,12 +10,19 @@ export function createPerformanceTracker(
                     if (entry.entryType === 'navigation') {
                         const navEntry = entry as PerformanceNavigationTiming;
                         const performanceData: PerformanceEventData = {
-                            pageLoadTime: Math.round(navEntry.loadEventEnd - navEntry.startTime),
-                            dnsTime: Math.round(
-                                navEntry.domainLookupEnd - navEntry.domainLookupStart,
+                            pageLoadTime: Math.round(
+                                navEntry.loadEventEnd - navEntry.startTime
                             ),
-                            tcpTime: Math.round(navEntry.connectEnd - navEntry.connectStart),
-                            ttfb: Math.round(navEntry.responseStart - navEntry.requestStart),
+                            dnsTime: Math.round(
+                                navEntry.domainLookupEnd -
+                                    navEntry.domainLookupStart
+                            ),
+                            tcpTime: Math.round(
+                                navEntry.connectEnd - navEntry.connectStart
+                            ),
+                            ttfb: Math.round(
+                                navEntry.responseStart - navEntry.requestStart
+                            ),
                         };
                         void sendData('performance', performanceData);
                     }
