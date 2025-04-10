@@ -6,10 +6,10 @@ import type {
     FormEventData,
     ModalEventData,
     ExitEventData,
-} from "./types";
-import { getPageType, getABTestFeatures, getElementText } from "./utils";
+} from './types';
+import { getPageType, getABTestFeatures, getElementText } from './utils';
 
-export const createEventTracker = (
+export const createEventSender = (
     sendData: (
         eventType: EventType,
         eventData: EventData,
@@ -24,7 +24,7 @@ export const createEventTracker = (
         visibility: boolean;
         modal: boolean;
     },
-    shouldTrack: () => boolean
+    shouldSend: () => boolean
 ) => {
     const state = {
         pageStartTime: performance.now(),
@@ -33,7 +33,7 @@ export const createEventTracker = (
         isPageVisible: !document.hidden,
     };
 
-    function resetTimeTracking() {
+    function resetTime() {
         state.pageStartTime = performance.now();
         state.activeStartTime = document.hidden ? null : state.pageStartTime;
         state.totalActiveTime = 0;
@@ -55,7 +55,7 @@ export const createEventTracker = (
     }
 
     function handlePageExit() {
-        if (!shouldTrack()) return;
+        if (!shouldSend()) return;
 
         const now = performance.now();
         const timeOnPage = now - state.pageStartTime;
@@ -64,19 +64,19 @@ export const createEventTracker = (
             state.totalActiveTime += now - state.activeStartTime;
         }
 
-        void sendData("exit", {
+        void sendData('exit', {
             timeOnPage: Math.round(timeOnPage),
             activeTime: Math.round(state.totalActiveTime),
         } as ExitEventData);
     }
 
-    function trackClick(event: MouseEvent) {
+    function sendClick(event: MouseEvent) {
         const target = event.target as HTMLElement;
         if (!target) return;
 
         // Ensure we have valid coordinates (some synthetic events don't have them)
-        const xPos = typeof event.pageX === "number" ? event.pageX : 0;
-        const yPos = typeof event.pageY === "number" ? event.pageY : 0;
+        const xPos = typeof event.pageX === 'number' ? event.pageX : 0;
+        const yPos = typeof event.pageY === 'number' ? event.pageY : 0;
 
         const clickData: ClickEventData = {
             elementType: target.tagName.toLowerCase(),
@@ -87,10 +87,10 @@ export const createEventTracker = (
             yPos,
         };
 
-        void sendData("click", clickData);
+        void sendData('click', clickData);
     }
 
-    function trackFormSubmit(event: SubmitEvent) {
+    function sendFormSubmit(event: SubmitEvent) {
         const form = event.target as HTMLFormElement;
         if (!form) return;
 
@@ -102,26 +102,26 @@ export const createEventTracker = (
                 .filter(Boolean),
         };
 
-        void sendData("form_submit", formData);
+        void sendData('form_submit', formData);
     }
 
     if (document.addEventListener) {
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-        window.addEventListener("beforeunload", handlePageExit);
-        window.addEventListener("pagehide", handlePageExit);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('beforeunload', handlePageExit);
+        window.addEventListener('pagehide', handlePageExit);
     }
 
-    resetTimeTracking();
+    resetTime();
 
     return {
-        trackPageView: () => {
+        sendPageView: () => {
             if (!config.pageView) return;
 
             if (state.pageStartTime && state.totalActiveTime > 0) {
                 handlePageExit();
             }
 
-            resetTimeTracking();
+            resetTime();
 
             const pageViewData: PageViewEventData = {
                 pageTitle: document.title,
@@ -130,21 +130,21 @@ export const createEventTracker = (
                 referrer: document.referrer,
             };
 
-            void sendData("page_view", pageViewData, {
+            void sendData('page_view', pageViewData, {
                 features: getABTestFeatures(),
             });
         },
-        initClickTracking: () => {
+        initClickSending: () => {
             if (!config.click) return;
-            document.addEventListener("click", trackClick);
+            document.addEventListener('click', sendClick);
         },
-        initFormTracking: () => {
+        initFormSending: () => {
             if (!config.form) return;
-            document.addEventListener("submit", trackFormSubmit);
+            document.addEventListener('submit', sendFormSubmit);
         },
-        trackModalView: (
+        sendModalView: (
             modalId: string,
-            modalType: "on_click" | "exit_intent"
+            modalType: 'on_click' | 'exit_intent'
         ) => {
             if (!config.modal) return;
             const modalData: ModalEventData = {
@@ -152,20 +152,20 @@ export const createEventTracker = (
                 modalType,
                 timeToShow: Math.round(performance.now() - pageLoadTime),
             };
-            void sendData("modal_view", modalData);
+            void sendData('modal_view', modalData);
         },
         destroy: () => {
             document.removeEventListener(
-                "visibilitychange",
+                'visibilitychange',
                 handleVisibilityChange
             );
-            window.removeEventListener("beforeunload", handlePageExit);
-            window.removeEventListener("pagehide", handlePageExit);
+            window.removeEventListener('beforeunload', handlePageExit);
+            window.removeEventListener('pagehide', handlePageExit);
             if (config.click) {
-                document.removeEventListener("click", trackClick);
+                document.removeEventListener('click', sendClick);
             }
             if (config.form) {
-                document.removeEventListener("submit", trackFormSubmit);
+                document.removeEventListener('submit', sendFormSubmit);
             }
         },
     };

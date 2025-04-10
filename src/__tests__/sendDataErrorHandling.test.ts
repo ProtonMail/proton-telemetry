@@ -1,8 +1,8 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createAnalytics as ProtonAnalytics } from '../analytics';
+import { createTelemetry as ProtonTelemetry } from '../telemetry';
 import { BATCH_DELAY } from '../constants';
 
-describe('ProtonAnalytics - sendData Error Handling (No Retry)', () => {
+describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
     let mockFetch: ReturnType<typeof vi.fn>;
     let localStorageMock: { getItem: any; setItem: any; removeItem: any };
     let mockStorage: Record<string, string | undefined>;
@@ -12,7 +12,7 @@ describe('ProtonAnalytics - sendData Error Handling (No Retry)', () => {
     beforeEach(() => {
         vi.useFakeTimers();
 
-        // Use pre-set anonymousId to prevent random_uid_created event
+        // Use pre-set id to prevent random_uid_created event
         mockStorage = {
             aId: 'test-uuid',
         };
@@ -56,8 +56,8 @@ describe('ProtonAnalytics - sendData Error Handling (No Retry)', () => {
     });
 
     it('does not retry on network error and drops events', async () => {
-        const analytics = ProtonAnalytics({
-            endpoint: 'https://analytics.test.com',
+        const telemetry = ProtonTelemetry({
+            endpoint: 'https://telemetry.test.com',
             appVersion: 'appVersion',
             debug: true,
             events: {
@@ -72,14 +72,14 @@ describe('ProtonAnalytics - sendData Error Handling (No Retry)', () => {
 
         mockFetch.mockRejectedValue(new Error('Network error'));
 
-        analytics.trackCustomEvent('test_event', { test: true }, {});
+        telemetry.sendCustomEvent('test_event', { test: true }, {});
 
         // Initial attempt after batch delay
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
         expect(mockFetch).toHaveBeenCalledTimes(1);
 
         expect(consoleSpyError).toHaveBeenCalledWith(
-            '[Analytics] Network error occurred. Dropping events.',
+            '[Telemetry] Network error occurred. Dropping events.',
             expect.any(Error)
         );
 
@@ -89,9 +89,9 @@ describe('ProtonAnalytics - sendData Error Handling (No Retry)', () => {
         // Verify fetch was only called once (no retries)
         expect(mockFetch).toHaveBeenCalledTimes(1);
 
-        // Track another event to see if the queue was cleared
+        // Send another event to see if the queue was cleared
         mockFetch.mockResolvedValueOnce({ ok: true });
-        analytics.trackCustomEvent('test_event_2', { test: true }, {});
+        telemetry.sendCustomEvent('test_event_2', { test: true }, {});
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
         expect(mockFetch).toHaveBeenCalledTimes(2);
         const secondCall = mockFetch.mock.lastCall;
@@ -101,8 +101,8 @@ describe('ProtonAnalytics - sendData Error Handling (No Retry)', () => {
     });
 
     it('does not retry on 429/503 if Retry-After header is missing', async () => {
-        const analytics = ProtonAnalytics({
-            endpoint: 'https://analytics.test.com',
+        const telemetry = ProtonTelemetry({
+            endpoint: 'https://telemetry.test.com',
             appVersion: 'appVersion',
             debug: true,
             events: {
@@ -123,14 +123,14 @@ describe('ProtonAnalytics - sendData Error Handling (No Retry)', () => {
             })
             .mockResolvedValueOnce({ ok: true }); // Potential next call
 
-        analytics.trackCustomEvent('test_event', { test: true }, {});
+        telemetry.sendCustomEvent('test_event', { test: true }, {});
 
         // Initial attempt
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
         expect(mockFetch).toHaveBeenCalledTimes(1);
 
         expect(consoleSpyError).toHaveBeenCalledWith(
-            `[Analytics] Server responded with status 429 without a valid Retry-After header. Dropping events.`
+            `[Telemetry] Server responded with status 429 without a valid Retry-After header. Dropping events.`
         );
 
         // Advance time beyond any potential retry interval and verify no retry
@@ -139,8 +139,8 @@ describe('ProtonAnalytics - sendData Error Handling (No Retry)', () => {
     });
 
     it('does not retry on other non-OK server responses (e.g., 500)', async () => {
-        const analytics = ProtonAnalytics({
-            endpoint: 'https://analytics.test.com',
+        const telemetry = ProtonTelemetry({
+            endpoint: 'https://telemetry.test.com',
             appVersion: 'appVersion',
             debug: true,
             events: {
@@ -161,14 +161,14 @@ describe('ProtonAnalytics - sendData Error Handling (No Retry)', () => {
             })
             .mockResolvedValueOnce({ ok: true }); // Potential next call
 
-        analytics.trackCustomEvent('test_event', { test: true }, {});
+        telemetry.sendCustomEvent('test_event', { test: true }, {});
 
         // Initial attempt
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
         expect(mockFetch).toHaveBeenCalledTimes(1);
 
         expect(consoleSpyError).toHaveBeenCalledWith(
-            `[Analytics] Server responded with status 500 without a valid Retry-After header. Dropping events.`
+            `[Telemetry] Server responded with status 500 without a valid Retry-After header. Dropping events.`
         );
 
         // Advance time beyond any potential retry interval and verify no retry

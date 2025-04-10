@@ -7,12 +7,16 @@ export const generateMessageId = (): string => {
 export const fetchWithHeaders = async (
     input: RequestInfo | URL,
     appVersion: string,
-    init?: RequestInit,
+    init?: RequestInit
 ): Promise<Response> => {
-    const prevPage: HeadersInit = document?.referrer ? { 'X-PM-Referer': document.referrer } : {};
+    const prevPage: HeadersInit = document?.referrer
+        ? { 'X-PM-Referer': document.referrer }
+        : {};
     const existingHeaders =
         init?.headers instanceof Headers
-            ? Object.fromEntries((init.headers as unknown as Map<string, string>).entries())
+            ? Object.fromEntries(
+                  (init.headers as unknown as Map<string, string>).entries()
+              )
             : (init?.headers as HeadersInit) || {};
 
     return fetch(input, {
@@ -23,15 +27,15 @@ export const fetchWithHeaders = async (
             ...prevPage,
             'Content-Type': 'application/json;charset=utf-8',
             Accept: 'application/vnd.protonmail.v1+json',
-            'x-pm-appversion': appVersion
+            'x-pm-appversion': appVersion,
         },
     });
 };
 
-// Useful for tracking scroll events
+// Useful for scroll events
 export const throttle = <T extends (...args: Parameters<T>) => ReturnType<T>>(
     func: T,
-    limit: number,
+    limit: number
 ): ((...args: Parameters<T>) => void) => {
     let inThrottle = false;
 
@@ -135,7 +139,10 @@ export const getElementText = (element: HTMLElement): string | undefined => {
     if (dataText) return truncateText(dataText);
 
     // For links or buttons without text, try to find something descriptive
-    if (element.tagName.toLowerCase() === 'a' || element.tagName.toLowerCase() === 'button') {
+    if (
+        element.tagName.toLowerCase() === 'a' ||
+        element.tagName.toLowerCase() === 'button'
+    ) {
         const img = element.querySelector('img');
         if (img?.alt) {
             return truncateText(img.alt);
@@ -162,7 +169,8 @@ export const getElementText = (element: HTMLElement): string | undefined => {
             // Try to get initial text before script content, otherwise return the element tag name
             const firstPart = text.split(/\(function|\{|\)|;/)[0].trim();
             return truncateText(
-                firstPart || element.tagName.toLowerCase() + ' element with JS code',
+                firstPart ||
+                    element.tagName.toLowerCase() + ' element with JS code'
             );
         }
     }

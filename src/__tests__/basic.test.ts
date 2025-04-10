@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { createAnalytics as ProtonAnalytics } from '../analytics';
+import { createTelemetry as ProtonTelemetry } from '../telemetry';
 
-describe('ProtonAnalytics - Basic Functionality', () => {
-    let analytics: ReturnType<typeof ProtonAnalytics>;
+describe('ProtonTelemetry - Basic Functionality', () => {
+    let telemetry: ReturnType<typeof ProtonTelemetry>;
     let mockFetch: any;
 
     beforeEach(() => {
@@ -45,12 +45,12 @@ describe('ProtonAnalytics - Basic Functionality', () => {
             language: 'en',
         });
 
-        analytics = ProtonAnalytics({
-            endpoint: 'https://analytics.test.com',
+        telemetry = ProtonTelemetry({
+            endpoint: 'https://telemetry.test.com',
             appVersion: 'appVersion',
         });
 
-        vi.spyOn(analytics, 'trackPageView');
+        vi.spyOn(telemetry, 'sendPageView');
     });
 
     afterEach(() => {
@@ -59,16 +59,16 @@ describe('ProtonAnalytics - Basic Functionality', () => {
     });
 
     it('initializes with correct config', () => {
-        expect(analytics).toBeDefined();
+        expect(telemetry).toBeDefined();
     });
 
-    it('tracks page views', () => {
-        analytics.trackPageView();
-        expect(analytics.trackPageView).toHaveBeenCalled();
+    it('sends page view events', () => {
+        telemetry.sendPageView();
+        expect(telemetry.sendPageView).toHaveBeenCalled();
     });
 
     it('adds appVersion header', async () => {
-        analytics.trackPageView();
+        telemetry.sendPageView();
 
         // Advance timers
         await vi.advanceTimersByTimeAsync(200);
