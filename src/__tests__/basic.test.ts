@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { createTelemetry as ProtonTelemetry } from '../telemetry';
+import { BATCH_DELAY } from '../constants';
 
 describe('ProtonTelemetry - Basic Functionality', () => {
     let telemetry: ReturnType<typeof ProtonTelemetry>;
@@ -69,13 +70,60 @@ describe('ProtonTelemetry - Basic Functionality', () => {
 
     it('adds appVersion header', async () => {
         telemetry.sendPageView();
-
-        // Advance timers
-        await vi.advanceTimersByTimeAsync(200);
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
 
         expect(mockFetch).toHaveBeenCalledTimes(1);
-        const [url, init] = mockFetch.mock.lastCall;
+        const [_, init] = mockFetch.mock.lastCall;
 
         expect(init.headers['x-pm-appversion']).toBe('appVersion');
+    });
+});
+
+describe('ProtonTelemetry - Headers', () => {
+    let mockFetch: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        mockFetch = vi.fn().mockResolvedValue(new Response());
+
+        vi.stubGlobal('document', {
+            addEventListener: vi.fn(),
+            querySelectorAll: vi.fn().mockReturnValue([]),
+        });
+
+        vi.stubGlobal('fetch', mockFetch);
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('includes x-pm-uid header when uid is provided', async () => {
+        const telemetry = ProtonTelemetry({
+            endpoint: 'https://telemetry.test.com',
+            appVersion: 'appVersion',
+            uidHeader: 'test-id',
+        });
+
+        telemetry.sendCustomEvent('test_event', {});
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
+
+        expect(mockFetch).toHaveBeenCalled();
+        const init = mockFetch.mock.calls[0][1] as RequestInit;
+        expect(init.headers).toHaveProperty('x-pm-uid', 'test-id');
+    });
+
+    it('does not include x-pm-uid header when uid is not provided', async () => {
+        const telemetry = ProtonTelemetry({
+            endpoint: 'https://telemetry.test.com',
+            appVersion: 'appVersion',
+        });
+
+        telemetry.sendCustomEvent('test_event', {});
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
+
+        expect(mockFetch).toHaveBeenCalled();
+        const init = mockFetch.mock.calls[0][1] as RequestInit;
+        expect(init.headers).not.toHaveProperty('x-pm-uid');
     });
 });

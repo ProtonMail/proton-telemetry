@@ -8,13 +8,15 @@ import type {
 import { fetchWithHeaders } from './utils';
 import { BATCH_DELAY, MAX_RETRIES } from './constants';
 
+interface SendDataConfig {
+    debug: boolean;
+    dryRun: boolean;
+    endpoint: string;
+    appVersion: string;
+    uidHeader?: string;
+}
+
 interface SendDataState {
-    config: {
-        debug: boolean;
-        dryRun: boolean;
-        endpoint: string;
-        appVersion: string;
-    };
     eventQueue: QueuedEvent[];
     batchTimeout: NodeJS.Timeout | null;
     retryCount: number;
@@ -29,14 +31,16 @@ interface SendDataDependencies {
 }
 
 export function createSendData(
+    config: SendDataConfig,
     state: SendDataState,
     deps: SendDataDependencies
 ) {
     async function sendBatch(): Promise<boolean> {
         try {
             const response = await fetchWithHeaders(
-                state.config.endpoint,
-                state.config.appVersion,
+                config.endpoint,
+                config.appVersion,
+                config.uidHeader,
                 {
                     method: 'POST',
                     body: JSON.stringify({
@@ -49,7 +53,7 @@ export function createSendData(
             );
 
             if (response.ok) {
-                if (state.config.debug && state.retryCount > 0) {
+                if (config.debug && state.retryCount > 0) {
                     console.log(
                         '[Telemetry] Batch sent successfully after retries.'
                     );
@@ -74,7 +78,7 @@ export function createSendData(
 
                 if (delayMs !== null && state.retryCount < MAX_RETRIES) {
                     state.retryCount++;
-                    if (state.config.debug) {
+                    if (config.debug) {
                         console.log(
                             `[Telemetry] Server responded with ${response.status}. Retrying after ${delayMs}ms (attempt #${state.retryCount}) based on Retry-After header.`
                         );
@@ -85,7 +89,7 @@ export function createSendData(
                     return false;
                 } else {
                     // Max retries reached or invalid Retry-After header
-                    if (state.config.debug) {
+                    if (config.debug) {
                         if (delayMs === null) {
                             console.error(
                                 `[Telemetry] Server responded with ${response.status} but invalid Retry-After header ('${retryAfterHeader}'). Dropping events.`
@@ -103,7 +107,7 @@ export function createSendData(
                 }
             } else {
                 // Status is not 429/503 or Retry-After header is missing: do not retry
-                if (state.config.debug) {
+                if (config.debug) {
                     console.error(
                         `[Telemetry] Server responded with status ${response.status} without a valid Retry-After header. Dropping events.`
                     );
@@ -115,7 +119,7 @@ export function createSendData(
             }
         } catch (error) {
             // Do not retry on network errors
-            if (state.config.debug) {
+            if (config.debug) {
                 console.error(
                     '[Telemetry] Network error occurred. Dropping events.',
                     error
@@ -135,7 +139,7 @@ export function createSendData(
     ): Promise<boolean> {
         const event = deps.createEventPayload(eventType, eventData, customData);
 
-        if (state.config.dryRun) {
+        if (config.dryRun) {
             // eslint-disable-next-line no-console
             console.log('[DRY RUN] event:', event);
             return true;
