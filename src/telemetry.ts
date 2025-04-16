@@ -16,22 +16,12 @@ import {
     getFormattedUTCTimezone,
 } from './utils';
 import { createSendData } from './sendData';
+import { createConfig } from './config/utils';
 
-export const createTelemetry = (config: TelemetryConfig) => {
+export const createTelemetry = (userConfig: TelemetryConfig) => {
+    const config = createConfig(userConfig);
+
     const state = {
-        config: {
-            debug: false,
-            dryRun: false,
-            events: {
-                pageView: true,
-                click: true,
-                form: false,
-                performance: true,
-                visibility: true,
-                modal: false,
-            },
-            ...config,
-        } as Required<TelemetryConfig>,
         aId: '',
         pageLoadTime: 0,
         userTimezone: '',
@@ -56,12 +46,13 @@ export const createTelemetry = (config: TelemetryConfig) => {
 
     const sendData = createSendData(
         {
-            config: {
-                debug: state.config.debug,
-                dryRun: state.config.dryRun,
-                endpoint: state.config.endpoint,
-                appVersion: state.config.appVersion,
-            },
+            endpoint: config.endpoint,
+            appVersion: config.appVersion,
+            debug: config.debug,
+            dryRun: config.dryRun,
+            uidHeader: config.uidHeader,
+        },
+        {
             eventQueue: state.eventQueue,
             batchTimeout: state.batchTimeout,
             retryCount: state.retryCount,
@@ -115,7 +106,7 @@ export const createTelemetry = (config: TelemetryConfig) => {
                 },
                 library: {
                     name: 'proton-telemetry',
-                    version: state.config.appVersion,
+                    version: config.appVersion,
                 },
                 browserLocale: state.userLanguage,
                 page: {
@@ -176,27 +167,27 @@ export const createTelemetry = (config: TelemetryConfig) => {
         sendData,
         state.pageLoadTime,
         {
-            pageView: Boolean(state.config.events.pageView),
-            click: Boolean(state.config.events.click),
-            form: Boolean(state.config.events.form),
-            performance: Boolean(state.config.events.performance),
-            visibility: Boolean(state.config.events.visibility),
-            modal: Boolean(state.config.events.modal),
+            pageView: Boolean(config.events.pageView),
+            click: Boolean(config.events.click),
+            form: Boolean(config.events.form),
+            performance: Boolean(config.events.performance),
+            visibility: Boolean(config.events.visibility),
+            modal: Boolean(config.events.modal),
         },
         shouldSend
     );
     const performanceObserver = createPerformanceObserver(sendData);
 
     if (shouldSend()) {
-        if (state.config.events.pageView) {
+        if (config.events.pageView) {
             eventSender.sendPageView();
         }
 
-        if (state.config.events.click) {
+        if (config.events.click) {
             eventSender.initClickSending();
         }
 
-        if (state.config.events.performance) {
+        if (config.events.performance) {
             performanceObserver.initializeObserver();
         }
     }
@@ -243,8 +234,9 @@ export const createTelemetry = (config: TelemetryConfig) => {
 
                 try {
                     await fetchWithHeaders(
-                        state.config.endpoint,
-                        state.config.appVersion,
+                        config.endpoint,
+                        config.appVersion,
+                        config.uidHeader,
                         {
                             method: 'POST',
                             body: JSON.stringify(batchedEvents),
@@ -253,7 +245,7 @@ export const createTelemetry = (config: TelemetryConfig) => {
                     );
                     state.eventQueue = [];
                 } catch (error) {
-                    if (state.config.debug) {
+                    if (config.debug) {
                         console.error('Telemetry error:', error);
                     }
                 }

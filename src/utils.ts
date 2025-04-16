@@ -7,11 +7,13 @@ export const generateMessageId = (): string => {
 export const fetchWithHeaders = async (
     input: RequestInfo | URL,
     appVersion: string,
+    uid?: string,
     init?: RequestInit
 ): Promise<Response> => {
     const prevPage: HeadersInit = document?.referrer
         ? { 'X-PM-Referer': document.referrer }
         : {};
+    const uidHeader: HeadersInit = uid ? { 'x-pm-uid': uid } : {};
     const existingHeaders =
         init?.headers instanceof Headers
             ? Object.fromEntries(
@@ -25,6 +27,7 @@ export const fetchWithHeaders = async (
         headers: {
             ...existingHeaders,
             ...prevPage,
+            ...uidHeader,
             'Content-Type': 'application/json;charset=utf-8',
             Accept: 'application/vnd.protonmail.v1+json',
             'x-pm-appversion': appVersion,

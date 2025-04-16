@@ -1,8 +1,9 @@
 export interface TelemetryConfig {
     endpoint: string;
+    appVersion: string;
     debug?: boolean;
     dryRun?: boolean;
-    appVersion: string;
+    uidHeader?: string;
     events?: {
         pageView?: boolean;
         click?: boolean;

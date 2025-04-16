@@ -19,10 +19,11 @@ Add this code somewhere where it will run on every page load:
 ```ts
 import { ProtonTelemetry } from '@proton/telemetry'
 ...
-// define endpoint as one of either https://telemetry.proton.me/payload or https://telemetry.protonvpn.com/payload
+
 const telemetry = ProtonTelemetry({
-    endpoint,
-    appVersion: 'web-static@<appVersion>' // e.g. 'web-static@3.14.1'
+    endpoint, // one of either https://telemetry.proton.me/payload or https://telemetry.protonvpn.com/payload
+    appVersion: 'web-static@<appVersion>', // e.g. 'web-static@3.14.1'
+    uid: '' // optional
 });
 
 window.protonTelemetry = telemetry;
