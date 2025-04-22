@@ -6,12 +6,33 @@ default:
 
 stages:
     - install
-    - test
+    - lint
+    - security
     - build
+    - test
     - publish
 
 variables:
     NPM_CONFIG_REGISTRY: 'https://nexus.protontech.ch/repository/web-npm/'
+
+workflow:
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+        - if: $CI_COMMIT_TAG
+        - when: never
+
+include:
+    - component: 'gitlab.protontech.ch/proton/devops/cicd-components/kits/devsecops/semgrep@0.0.39'
+      inputs:
+          runner-tag: shared-small
+          stage: security
+      rules:
+          - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+          - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+          - if: $CI_COMMIT_TAG
+          - if: $CI_PIPELINE_SOURCE == "schedule"
+            when: never
 
 .pnpm_setup: &pnpm_setup
     before_script:
@@ -20,8 +41,6 @@ variables:
 install:
     <<: *pnpm_setup
     stage: install
-    except:
-        - tags
     script:
         - pnpm install --frozen-lockfile
     artifacts:
@@ -30,13 +49,11 @@ install:
             - node_modules
             - pnpm-lock.yaml
 
-test:
+lint:
     <<: *pnpm_setup
-    stage: test
-    except:
-        - tags
+    stage: lint
     script:
-        - pnpm test
+        - pnpm run lint
     dependencies:
         - install
 
@@ -52,6 +69,15 @@ build:
     dependencies:
         - install
 
+test:
+    <<: *pnpm_setup
+    stage: test
+    script:
+        - pnpm test
+    dependencies:
+        - install
+        - build
+
 publish:
     <<: *pnpm_setup
     stage: publish
@@ -62,9 +88,7 @@ publish:
         - echo "//nexus.protontech.ch/repository/web-npm/:_authToken=${NPM_AUTH_TOKEN}" > .npmrc
         - echo "registry=https://nexus.protontech.ch/repository/web-npm/" >> .npmrc
         - echo "@proton:registry=https://nexus.protontech.ch/repository/web-npm/" >> .npmrc
-        # Rest of the publish steps...
-        - pnpm install --frozen-lockfile
-        - pnpm run build
         - pnpm publish --no-git-checks
     dependencies:
         - build
+        - test

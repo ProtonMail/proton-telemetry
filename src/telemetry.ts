@@ -59,18 +59,22 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
         },
         {
             createEventPayload,
-        }
+        },
     );
 
     function createEventPayload(
         eventType: EventType,
         eventData: Record<string, unknown>,
-        customData?: Record<string, unknown>
+        customData?: Record<string, unknown>,
     ): TelemetryEvent {
         const urlParams = new URLSearchParams(window.location.search);
         const queryParams: Record<string, string> = {};
         urlParams.forEach((value, key) => {
-            queryParams[key] = value;
+            if (key.startsWith('utm_')) {
+                // Key is validated against prototype pollution by the check above
+                // nosemgrep: gitlab.eslint.detect-object-injection
+                queryParams[key] = value;
+            }
         });
 
         const now = new Date();
@@ -85,7 +89,7 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
             .padStart(2, '0');
         const offsetSign = offset >= 0 ? '+' : '-';
         const localTimestamp = new Date(
-            now.getTime() - now.getTimezoneOffset() * 60000
+            now.getTime() - now.getTimezoneOffset() * 60_000,
         )
             .toISOString()
             .replace('Z', `${offsetSign}${offsetHours}:${offsetMinutes}`);
@@ -174,7 +178,7 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
             visibility: Boolean(config.events.visibility),
             modal: Boolean(config.events.modal),
         },
-        shouldSend
+        shouldSend,
     );
     const performanceObserver = createPerformanceObserver(sendData);
 
@@ -207,7 +211,7 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
         },
         sendModalView: (
             modalId: string,
-            modalType: 'on_click' | 'exit_intent'
+            modalType: 'on_click' | 'exit_intent',
         ) => {
             if (!shouldSend()) return;
             eventSender.sendModalView(modalId, modalType);
@@ -215,7 +219,7 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
         sendCustomEvent: (
             eventType: Exclude<string, StandardEventType>,
             properties: CustomEventData,
-            customData?: Record<string, unknown>
+            customData?: Record<string, unknown>,
         ) => {
             if (!shouldSend()) return;
             void sendData(eventType as CustomEventType, properties, customData);
@@ -228,7 +232,7 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
             if (state.eventQueue.length > 0) {
                 const batchedEvents: BatchedTelemetryEvents = {
                     events: state.eventQueue.map(
-                        (queuedEvent) => queuedEvent.event
+                        (queuedEvent) => queuedEvent.event,
                     ),
                 };
 
@@ -241,7 +245,7 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
                             method: 'POST',
                             body: JSON.stringify(batchedEvents),
                             keepalive: true,
-                        }
+                        },
                     );
                     state.eventQueue = [];
                 } catch (error) {
@@ -260,7 +264,7 @@ export const createCustomEventSender = (
     telemetry: ReturnType<typeof createTelemetry>,
     eventType: string,
     properties: CustomEventData = {},
-    customData: Record<string, unknown> = {}
+    customData: Record<string, unknown> = {},
 ) => {
     return () => telemetry.sendCustomEvent(eventType, properties, customData);
 };

@@ -2,17 +2,24 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { createTelemetry as ProtonTelemetry } from '../telemetry';
 
 describe('ProtonTelemetry - Do Not Track Functionality', () => {
-    let localStorageMock: { getItem: any; setItem: any; removeItem: any };
+    let localStorageMock: {
+        getItem: (key: string) => string | null;
+        setItem: (key: string, value: string) => void;
+        removeItem: (key: string) => void;
+    };
     let mockStorage: Record<string, string>;
 
     beforeEach(() => {
         mockStorage = {};
         localStorageMock = {
+            // nosemgrep: gitlab.eslint.detect-object-injection
             getItem: vi.fn((key: string) => mockStorage[key] ?? null),
             setItem: vi.fn((key: string, value: string) => {
+                // nosemgrep: gitlab.eslint.detect-object-injection
                 mockStorage[key] = value;
             }),
             removeItem: vi.fn((key: string) => {
+                // nosemgrep: gitlab.eslint.detect-object-injection
                 delete mockStorage[key];
             }),
         };

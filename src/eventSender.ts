@@ -13,7 +13,7 @@ export const createEventSender = (
     sendData: (
         eventType: EventType,
         eventData: EventData,
-        customData?: Record<string, unknown>
+        customData?: Record<string, unknown>,
     ) => Promise<boolean>,
     pageLoadTime: number,
     config: {
@@ -24,7 +24,7 @@ export const createEventSender = (
         visibility: boolean;
         modal: boolean;
     },
-    shouldSend: () => boolean
+    shouldSend: () => boolean,
 ) => {
     const state = {
         pageStartTime: performance.now(),
@@ -144,7 +144,7 @@ export const createEventSender = (
         },
         sendModalView: (
             modalId: string,
-            modalType: 'on_click' | 'exit_intent'
+            modalType: 'on_click' | 'exit_intent',
         ) => {
             if (!config.modal) return;
             const modalData: ModalEventData = {
@@ -157,7 +157,7 @@ export const createEventSender = (
         destroy: () => {
             document.removeEventListener(
                 'visibilitychange',
-                handleVisibilityChange
+                handleVisibilityChange,
             );
             window.removeEventListener('beforeunload', handlePageExit);
             window.removeEventListener('pagehide', handlePageExit);

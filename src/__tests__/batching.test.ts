@@ -2,9 +2,13 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { createTelemetry as ProtonTelemetry } from '../telemetry';
 
 describe('ProtonTelemetry - Event Batching', () => {
-    let localStorageMock: { getItem: any; setItem: any; removeItem: any };
+    let localStorageMock: {
+        getItem: (key: string) => string | null;
+        setItem: (key: string, value: string) => void;
+        removeItem: (key: string) => void;
+    };
     let mockStorage: Record<string, string>;
-    let mockFetch: any;
+    let mockFetch: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
         vi.useFakeTimers();
@@ -13,11 +17,14 @@ describe('ProtonTelemetry - Event Batching', () => {
             aId: 'test-uuid', // Pre-set the aId to avoid random_uid_created event
         };
         localStorageMock = {
+            // nosemgrep: gitlab.eslint.detect-object-injection
             getItem: vi.fn((key: string) => mockStorage[key] ?? null),
             setItem: vi.fn((key: string, value: string) => {
+                // nosemgrep: gitlab.eslint.detect-object-injection
                 mockStorage[key] = value;
             }),
             removeItem: vi.fn((key: string) => {
+                // nosemgrep: gitlab.eslint.detect-object-injection
                 delete mockStorage[key];
             }),
         };
@@ -105,8 +112,9 @@ describe('ProtonTelemetry - Event Batching', () => {
 
         // Should have made one fetch call with both events
         expect(mockFetch).toHaveBeenCalledTimes(1);
-        const [url, init] = mockFetch.mock.lastCall;
-        expect(url).toBe('https://telemetry.test.com');
+        const url = mockFetch.mock.lastCall![0] as URL;
+        const init = mockFetch.mock.lastCall![1];
+        expect(url.href).toBe('https://telemetry.test.com/');
         const body = JSON.parse(init.body as string);
 
         expect(body.events).toHaveLength(2);
@@ -136,8 +144,9 @@ describe('ProtonTelemetry - Event Batching', () => {
         await telemetry.destroy();
 
         expect(mockFetch).toHaveBeenCalledTimes(1);
-        const [url, init] = mockFetch.mock.lastCall;
-        expect(url).toBe('https://telemetry.test.com');
+        const url = mockFetch.mock.lastCall![0] as URL;
+        const init = mockFetch.mock.lastCall![1];
+        expect(url.href).toBe('https://telemetry.test.com/');
         const body = JSON.parse(init.body as string);
 
         expect(body.events).toHaveLength(1);

@@ -26,14 +26,14 @@ interface SendDataDependencies {
     createEventPayload: (
         eventType: EventType,
         eventData: EventData,
-        customData?: Record<string, unknown>
+        customData?: Record<string, unknown>,
     ) => TelemetryEvent;
 }
 
 export function createSendData(
     config: SendDataConfig,
     state: SendDataState,
-    deps: SendDataDependencies
+    deps: SendDataDependencies,
 ) {
     async function sendBatch(): Promise<boolean> {
         try {
@@ -45,17 +45,17 @@ export function createSendData(
                     method: 'POST',
                     body: JSON.stringify({
                         events: state.eventQueue.map(
-                            (queuedEvent) => queuedEvent.event
+                            (queuedEvent) => queuedEvent.event,
                         ),
                     }),
                     keepalive: true,
-                }
+                },
             );
 
             if (response.ok) {
                 if (config.debug && state.retryCount > 0) {
                     console.log(
-                        '[Telemetry] Batch sent successfully after retries.'
+                        '[Telemetry] Batch sent successfully after retries.',
                     );
                 }
                 state.eventQueue = [];
@@ -80,7 +80,7 @@ export function createSendData(
                     state.retryCount++;
                     if (config.debug) {
                         console.log(
-                            `[Telemetry] Server responded with ${response.status}. Retrying after ${delayMs}ms (attempt #${state.retryCount}) based on Retry-After header.`
+                            `[Telemetry] Server responded with ${response.status}. Retrying after ${delayMs}ms (attempt #${state.retryCount}) based on Retry-After header.`,
                         );
                     }
                     setTimeout(() => {
@@ -92,11 +92,11 @@ export function createSendData(
                     if (config.debug) {
                         if (delayMs === null) {
                             console.error(
-                                `[Telemetry] Server responded with ${response.status} but invalid Retry-After header ('${retryAfterHeader}'). Dropping events.`
+                                `[Telemetry] Server responded with ${response.status} but invalid Retry-After header ('${retryAfterHeader}'). Dropping events.`,
                             );
                         } else {
                             console.error(
-                                `[Telemetry] Max retries (${MAX_RETRIES}) reached after ${response.status} response. Dropping events.`
+                                `[Telemetry] Max retries (${MAX_RETRIES}) reached after ${response.status} response. Dropping events.`,
                             );
                         }
                     }
@@ -109,7 +109,7 @@ export function createSendData(
                 // Status is not 429/503 or Retry-After header is missing: do not retry
                 if (config.debug) {
                     console.error(
-                        `[Telemetry] Server responded with status ${response.status} without a valid Retry-After header. Dropping events.`
+                        `[Telemetry] Server responded with status ${response.status} without a valid Retry-After header. Dropping events.`,
                     );
                 }
                 // Drop events
@@ -122,7 +122,7 @@ export function createSendData(
             if (config.debug) {
                 console.error(
                     '[Telemetry] Network error occurred. Dropping events.',
-                    error
+                    error,
                 );
             }
             state.eventQueue = [];
@@ -135,7 +135,7 @@ export function createSendData(
         eventType: EventType,
         eventData: EventData,
         customData?: Record<string, unknown>,
-        priority: EventPriority = 'high'
+        priority: EventPriority = 'high',
     ): Promise<boolean> {
         const event = deps.createEventPayload(eventType, eventData, customData);
 
