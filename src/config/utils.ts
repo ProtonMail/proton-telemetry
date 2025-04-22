@@ -2,7 +2,7 @@ import type { TelemetryConfig } from '../types';
 import { defaultConfig } from './defaultConfig';
 
 export const createConfig = (
-    userConfig: TelemetryConfig
+    userConfig: TelemetryConfig,
 ): Required<TelemetryConfig> =>
     ({
         ...defaultConfig,
@@ -11,4 +11,4 @@ export const createConfig = (
             ...defaultConfig.events,
             ...userConfig.events,
         },
-    } as Required<TelemetryConfig>);
+    }) as Required<TelemetryConfig>;

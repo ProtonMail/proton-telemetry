@@ -57,13 +57,13 @@ import { useSendCustomEvent } from './hooks/useSendCustomEvent';
 function MyComponent({ telemetry }) {
     const sendBasicEvent = useSendCustomEvent(
         telemetry,
-        'clickme_button_clicked'
+        'clickme_button_clicked',
     );
 
     const sendDetailedEvent = useSendCustomEvent(
         telemetry,
         'form_submitted',
-        { formId: 'contact-form' } // custom properties
+        { formId: 'contact-form' }, // custom properties
     );
 
     return (

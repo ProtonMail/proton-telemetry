@@ -4,7 +4,11 @@ import { BATCH_DELAY } from '../constants';
 
 describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
     let mockFetch: ReturnType<typeof vi.fn>;
-    let localStorageMock: { getItem: any; setItem: any; removeItem: any };
+    let localStorageMock: {
+        getItem: (key: string) => string | null;
+        setItem: (key: string, value: string) => void;
+        removeItem: (key: string) => void;
+    };
     let mockStorage: Record<string, string | undefined>;
     let consoleSpyLog: ReturnType<typeof vi.spyOn>;
     let consoleSpyError: ReturnType<typeof vi.spyOn>;
@@ -17,8 +21,10 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
             aId: 'test-uuid',
         };
         localStorageMock = {
+            // nosemgrep: gitlab.eslint.detect-object-injection
             getItem: vi.fn((key: string) => mockStorage[key] ?? null),
             setItem: vi.fn((key: string, value: string) => {
+                // nosemgrep: gitlab.eslint.detect-object-injection
                 mockStorage[key] = value;
             }),
             removeItem: vi.fn(),
@@ -80,7 +86,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
 
         expect(consoleSpyError).toHaveBeenCalledWith(
             '[Telemetry] Network error occurred. Dropping events.',
-            expect.any(Error)
+            expect.any(Error),
         );
 
         // Advance time significantly past any potential retry delay
@@ -130,7 +136,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
 
         expect(consoleSpyError).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with status 429 without a valid Retry-After header. Dropping events.`
+            `[Telemetry] Server responded with status 429 without a valid Retry-After header. Dropping events.`,
         );
 
         // Advance time beyond any potential retry interval and verify no retry
@@ -168,7 +174,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
 
         expect(consoleSpyError).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with status 500 without a valid Retry-After header. Dropping events.`
+            `[Telemetry] Server responded with status 500 without a valid Retry-After header. Dropping events.`,
         );
 
         // Advance time beyond any potential retry interval and verify no retry

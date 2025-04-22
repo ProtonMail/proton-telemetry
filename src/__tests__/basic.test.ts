@@ -4,7 +4,7 @@ import { BATCH_DELAY } from '../constants';
 
 describe('ProtonTelemetry - Basic Functionality', () => {
     let telemetry: ReturnType<typeof ProtonTelemetry>;
-    let mockFetch: any;
+    let mockFetch: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
         vi.useFakeTimers();
@@ -73,7 +73,7 @@ describe('ProtonTelemetry - Basic Functionality', () => {
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
 
         expect(mockFetch).toHaveBeenCalledTimes(1);
-        const [_, init] = mockFetch.mock.lastCall;
+        const init = mockFetch.mock.lastCall![1];
 
         expect(init.headers['x-pm-appversion']).toBe('appVersion');
     });

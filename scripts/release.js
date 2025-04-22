@@ -2,11 +2,20 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 const path = require('path');
 
-// Read the new version from package.json
-const packageJson = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')
-);
-const newVersion = packageJson.version;
+const PACKAGE_JSON_PATH = path.resolve(__dirname, '..', 'package.json');
+
+const normalizedPackagePath = path.normalize(PACKAGE_JSON_PATH);
+const normalizedBaseDir = path.normalize(process.cwd());
+
+if (!normalizedPackagePath.startsWith(normalizedBaseDir)) {
+    throw new Error(
+        'Invalid path: attempting to access file outside of project directory',
+    );
+}
+
+// nosemgrep: gitlab.eslint.detect-non-literal-fs-filename
+const packageJson = fs.readFileSync(PACKAGE_JSON_PATH, 'utf8');
+const newVersion = JSON.parse(packageJson).version;
 
 try {
     // Stage the package.json changes
