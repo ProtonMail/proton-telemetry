@@ -1,28 +1,5 @@
 import type { PageType } from './types';
 
-const ALLOWED_DOMAINS = [
-    'telemetry.protonvpn.com',
-    'api.proton.me',
-    ...(process.env.NODE_ENV === 'test' ? ['telemetry.test.com'] : []),
-];
-
-function isValidUrl(url: string | URL): boolean {
-    try {
-        const parsedUrl = new URL(url.toString());
-
-        if (process.env.NODE_ENV === 'test') {
-            return true;
-        }
-        return ALLOWED_DOMAINS.some(
-            (domain) =>
-                parsedUrl.hostname === domain ||
-                parsedUrl.hostname.endsWith('.' + domain),
-        );
-    } catch {
-        return false;
-    }
-}
-
 export const generateMessageId = (): string => {
     return crypto.randomUUID();
 };
@@ -33,17 +10,6 @@ export const fetchWithHeaders = async (
     uid?: string,
     init?: RequestInit,
 ): Promise<Response> => {
-    // Validate URL before making the request
-    const validatedUrl =
-        typeof input === 'string'
-            ? new URL(input)
-            : input instanceof Request
-              ? new URL(input.url)
-              : input;
-    if (!isValidUrl(validatedUrl)) {
-        throw new Error('Invalid URL provided to fetchWithHeaders');
-    }
-
     const prevPage: HeadersInit = document?.referrer
         ? { 'X-PM-Referer': document.referrer }
         : {};
@@ -55,9 +21,9 @@ export const fetchWithHeaders = async (
               )
             : (init?.headers as HeadersInit) || {};
 
-    // The 'input' URL comes from developer-controlled configuration (config.endpoint), not from direct user input
+    // The url comes from developer-controlled configuration (config.endpoint), not from direct user input
     // semgrep-ignore-line [gitlab.nodejs_scan.javascript-ssrf-rule-node_ssrf]
-    return fetch(validatedUrl, {
+    return fetch(input, {
         ...init,
         credentials: 'include',
         headers: {

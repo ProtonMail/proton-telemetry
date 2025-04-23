@@ -114,7 +114,7 @@ describe('ProtonTelemetry - Event Batching', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
         const url = mockFetch.mock.lastCall![0] as URL;
         const init = mockFetch.mock.lastCall![1];
-        expect(url.href).toBe('https://telemetry.test.com/');
+        expect(url).toBe('https://telemetry.test.com');
         const body = JSON.parse(init.body as string);
 
         expect(body.events).toHaveLength(2);
@@ -146,7 +146,7 @@ describe('ProtonTelemetry - Event Batching', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
         const url = mockFetch.mock.lastCall![0] as URL;
         const init = mockFetch.mock.lastCall![1];
-        expect(url.href).toBe('https://telemetry.test.com/');
+        expect(url).toBe('https://telemetry.test.com');
         const body = JSON.parse(init.body as string);
 
         expect(body.events).toHaveLength(1);
