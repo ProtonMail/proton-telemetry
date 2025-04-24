@@ -25,7 +25,7 @@ interface SendDataState {
 interface SendDataDependencies {
     createEventPayload: (
         eventType: EventType,
-        eventData: EventData,
+        eventData?: EventData,
         customData?: Record<string, unknown>,
     ) => TelemetryEvent;
 }
@@ -133,7 +133,7 @@ export function createSendData(
 
     async function sendData(
         eventType: EventType,
-        eventData: EventData,
+        eventData?: EventData,
         customData?: Record<string, unknown>,
         priority: EventPriority = 'high',
     ): Promise<boolean> {

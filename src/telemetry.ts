@@ -64,7 +64,7 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
 
     function createEventPayload(
         eventType: EventType,
-        eventData: Record<string, unknown>,
+        eventData?: Record<string, unknown>,
         customData?: Record<string, unknown>,
     ): TelemetryEvent {
         const urlParams = new URLSearchParams(window.location.search);
@@ -136,7 +136,7 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
                 features: customData?.features || Object.create(null),
             },
             properties: {
-                ...eventData,
+                ...(eventData || {}),
                 data: customData,
             },
         };
