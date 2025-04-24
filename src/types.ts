@@ -82,12 +82,6 @@ export type ClickEventData = BaseEventData & {
     yPos: number;
 };
 
-export type FormEventData = BaseEventData & {
-    formId?: string;
-    formAction?: string;
-    formFields?: string[];
-};
-
 export type PerformanceEventData = BaseEventData & {
     pageLoadTime: number;
     dnsTime: number;
@@ -113,7 +107,6 @@ export type CustomEventData = BaseEventData & {
 export type EventData =
     | PageViewEventData
     | ClickEventData
-    | FormEventData
     | PerformanceEventData
     | ExitEventData
     | ModalEventData

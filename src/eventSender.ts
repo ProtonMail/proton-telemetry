@@ -3,7 +3,6 @@ import type {
     EventData,
     ClickEventData,
     PageViewEventData,
-    FormEventData,
     ModalEventData,
     ExitEventData,
 } from './types';
@@ -12,7 +11,7 @@ import { getPageType, getABTestFeatures, getElementText } from './utils';
 export const createEventSender = (
     sendData: (
         eventType: EventType,
-        eventData: EventData,
+        eventData?: EventData,
         customData?: Record<string, unknown>,
     ) => Promise<boolean>,
     pageLoadTime: number,
@@ -94,15 +93,7 @@ export const createEventSender = (
         const form = event.target as HTMLFormElement;
         if (!form) return;
 
-        const formData: FormEventData = {
-            formId: form.id || undefined,
-            formAction: form.action || undefined,
-            formFields: Array.from(form.elements)
-                .map((el) => (el as HTMLInputElement).name)
-                .filter(Boolean),
-        };
-
-        void sendData('form_submit', formData);
+        void sendData('form_submit');
     }
 
     if (document.addEventListener) {
