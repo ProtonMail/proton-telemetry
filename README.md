@@ -1,8 +1,6 @@
 # Proton Telemetry
 
-This repository contains a lightweight, privacy-friendly TypeScript library for frontend telemetry on the storefront and account websites. Please see the [Proton Privacy Policy](https://proton.me/legal/privacy) for more information.
-
-For the full documentation including event schema and code overview, see https://web.gitlab-pages.protontech.ch/corp/proton.me/telemetry/overview/.
+This repository contains a lightweight TypeScript library for frontend telemetry on the storefront and account websites that respects users' DoNotTrack and GPC browser privacy settings. Please see the [Proton Privacy Policy](https://proton.me/legal/privacy) for more information.
 
 ## Consuming the library
 
