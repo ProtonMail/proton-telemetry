@@ -35,7 +35,27 @@ export function createSendData(
     state: SendDataState,
     deps: SendDataDependencies,
 ) {
-    async function sendBatch(): Promise<boolean> {
+    async function sendBatch(
+        eventsToProcess?: TelemetryEvent[],
+    ): Promise<boolean> {
+        let itemsForThisBatch: TelemetryEvent[];
+        const isRetryAttempt = !!eventsToProcess;
+
+        if (isRetryAttempt) {
+            itemsForThisBatch = eventsToProcess!; // Use the events passed for retry
+        } else {
+            const splicedQueuedEvents = state.eventQueue.splice(
+                0,
+                state.eventQueue.length,
+            );
+            itemsForThisBatch = splicedQueuedEvents.map((qe) => qe.event);
+        }
+
+        if (itemsForThisBatch.length === 0) {
+            // No events were spliced or provided for retry
+            return true;
+        }
+
         try {
             const response = await fetchWithHeaders(
                 config.endpoint,
@@ -43,27 +63,22 @@ export function createSendData(
                 config.uidHeader,
                 {
                     method: 'POST',
-                    body: JSON.stringify({
-                        events: state.eventQueue.map(
-                            (queuedEvent) => queuedEvent.event,
-                        ),
-                    }),
+                    body: JSON.stringify({ events: itemsForThisBatch }),
                     keepalive: true,
                 },
             );
 
             if (response.ok) {
-                if (config.debug && state.retryCount > 0) {
+                if (config.debug && state.retryCount > 0 && isRetryAttempt) {
                     console.log(
                         '[Telemetry] Batch sent successfully after retries.',
                     );
                 }
-                state.eventQueue = [];
-                state.retryCount = 0;
+                // Queue was already modified by splice. Reset retryCount if this was a successful retry.
+                if (isRetryAttempt) state.retryCount = 0;
                 return true;
             }
 
-            // --- Retry Logic Update ---
             const retryAfterHeader = response.headers.get('retry-after');
             const canRetry =
                 (response.status === 429 || response.status === 503) &&
@@ -84,7 +99,8 @@ export function createSendData(
                         );
                     }
                     setTimeout(() => {
-                        void sendBatch();
+                        // retry with the same (spliced) itemsForThisBatch
+                        void sendBatch(itemsForThisBatch);
                     }, delayMs);
                     return false;
                 } else {
@@ -100,8 +116,7 @@ export function createSendData(
                             );
                         }
                     }
-                    // Drop events
-                    state.eventQueue = [];
+                    // Events were already spliced, already dropped.
                     state.retryCount = 0;
                     return false;
                 }
@@ -112,8 +127,7 @@ export function createSendData(
                         `[Telemetry] Server responded with status ${response.status} without a valid Retry-After header. Dropping events.`,
                     );
                 }
-                // Drop events
-                state.eventQueue = [];
+                // Events were already spliced, already dropped.
                 state.retryCount = 0;
                 return false;
             }
@@ -125,7 +139,7 @@ export function createSendData(
                     error,
                 );
             }
-            state.eventQueue = [];
+            // Events were already spliced, already dropped.
             state.retryCount = 0;
             return false;
         }
@@ -140,7 +154,6 @@ export function createSendData(
         const event = deps.createEventPayload(eventType, eventData, customData);
 
         if (config.dryRun) {
-            // eslint-disable-next-line no-console
             console.log('[DRY RUN] event:', event);
             return true;
         }
@@ -157,8 +170,7 @@ export function createSendData(
             });
         } else {
             // An existing batch timeout or retry is in progress.
-            // The promise resolves based on the outcome of that existing operation.
-            // This might be slightly unintuitive, as the promise resolves based on the previous batch's success/failure.
+            // The event is queued and will be picked up when sendBatch is next called without args.
             return Promise.resolve(true); // Indicate event was queued
         }
     }
