@@ -1,0 +1,9 @@
+# Exclude compiled test files from the package
+dist/__tests__
+
+# Common files to exclude from npm packages
+*.log
+.DS_Store
+coverage/
+node_modules/
+.eslintcache
