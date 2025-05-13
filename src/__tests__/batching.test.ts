@@ -1,5 +1,8 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { createTelemetry as ProtonTelemetry } from '../telemetry';
+import { BATCH_DELAY } from '../constants';
+
+const FETCH_DELAY = 10;
 
 describe('ProtonTelemetry - Event Batching', () => {
     let localStorageMock: {
@@ -42,7 +45,13 @@ describe('ProtonTelemetry - Event Batching', () => {
             referrer: '',
         });
 
-        mockFetch = vi.fn().mockResolvedValue(new Response());
+        mockFetch = vi.fn(() => {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve(new Response());
+                }, FETCH_DELAY);
+            });
+        });
         vi.stubGlobal('fetch', mockFetch);
 
         vi.stubGlobal('window', {
@@ -141,15 +150,107 @@ describe('ProtonTelemetry - Event Batching', () => {
         // Events should be queued, not sent immediately
         expect(mockFetch).not.toHaveBeenCalled();
 
-        await telemetry.destroy();
+        telemetry.destroy();
+        await vi.advanceTimersByTimeAsync(FETCH_DELAY);
 
         expect(mockFetch).toHaveBeenCalledTimes(1);
         const url = mockFetch.mock.lastCall![0] as URL;
         const init = mockFetch.mock.lastCall![1];
+        const result = mockFetch.mock.settledResults[0].value;
+
+        expect(result.status).toBe(200);
         expect(url).toBe('https://telemetry.test.com');
         const body = JSON.parse(init.body as string);
 
         expect(body.events).toHaveLength(1);
         expect(body.events[0].eventType).toBe('custom_event');
+    });
+
+    it('handles multiple successive events if second event is triggered after the fetch delay', async () => {
+        const telemetry = ProtonTelemetry({
+            endpoint: 'https://telemetry.test.com',
+            appVersion: 'appVersion',
+            events: {
+                pageView: false, // Disable automatic page view events
+                click: false,
+                form: false,
+                performance: false,
+                visibility: false,
+                modal: false,
+            },
+        });
+
+        // Send multiple events in quick succession
+        telemetry.sendCustomEvent('custom_event_1', { test: true }, {});
+
+        // Events should be queued, not sent immediately
+        expect(mockFetch).not.toHaveBeenCalled();
+
+        // Advance timers
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
+
+        // Should have made one fetch call with both events
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+
+        const body1 = JSON.parse(mockFetch.mock.lastCall![1].body as string);
+
+        expect(body1.events).toHaveLength(1);
+        expect(body1.events[0].eventType).toBe('custom_event_1');
+
+        await vi.advanceTimersByTimeAsync(FETCH_DELAY);
+
+        telemetry.sendCustomEvent('custom_event_2', { test: true }, {});
+
+        // Advance timers
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
+
+        const body2 = JSON.parse(mockFetch.mock.lastCall![1].body as string);
+        expect(body2.events[0].eventType).toBe('custom_event_2');
+    });
+
+    it('handles multiple successive events if second event is triggered before the fetch delay', async () => {
+        const telemetry = ProtonTelemetry({
+            endpoint: 'https://telemetry.test.com',
+            appVersion: 'appVersion',
+            events: {
+                pageView: false, // Disable automatic page view events
+                click: false,
+                form: false,
+                performance: false,
+                visibility: false,
+                modal: false,
+            },
+        });
+
+        // Send multiple events in quick succession
+        telemetry.sendCustomEvent('custom_event_1', { test: true }, {});
+
+        // Events should be queued, not sent immediately
+        expect(mockFetch).not.toHaveBeenCalled();
+
+        // Advance timers
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
+
+        // Should have made one fetch call with both events
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+
+        const body1 = JSON.parse(mockFetch.mock.lastCall![1].body as string);
+
+        expect(body1.events).toHaveLength(1);
+        expect(body1.events[0].eventType).toBe('custom_event_1');
+
+        /**
+         * TODO: this demonstrates the race condition.
+         * The second event is not sent because the event queue is cleared when the first fetch succeeds. This clearing includes the second event
+         */
+        await vi.advanceTimersByTimeAsync(FETCH_DELAY - 1);
+
+        telemetry.sendCustomEvent('custom_event_2', { test: true }, {});
+
+        // Advance timers
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
+
+        const body2 = JSON.parse(mockFetch.mock.lastCall![1].body as string);
+        expect(body2.events[0].eventType).toBe('custom_event_2');
     });
 });
