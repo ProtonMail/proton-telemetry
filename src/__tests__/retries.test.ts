@@ -90,7 +90,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
             })
             .mockResolvedValueOnce({ ok: true });
 
-        telemetry.sendCustomEvent('test_event', { test: true }, {});
+        telemetry.sendCustomEvent('test_event', { test: true });
 
         // Initial attempt after batch delay
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
@@ -142,7 +142,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
             }),
         });
 
-        telemetry.sendCustomEvent('test_event', { test: true }, {});
+        telemetry.sendCustomEvent('test_event', { test: true });
 
         // Initial attempt
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
@@ -221,7 +221,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
             .mockResolvedValueOnce({ ok: true });
 
         // Event 1
-        telemetry.sendCustomEvent('test_event_1', { test: true }, {});
+        telemetry.sendCustomEvent('test_event_1', { test: true });
 
         // Initial attempt (fails)
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
@@ -245,7 +245,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
         );
 
         // Send second event to see if retry count was reset
-        telemetry.sendCustomEvent('test_event_2', { test: true }, {});
+        telemetry.sendCustomEvent('test_event_2', { test: true });
 
         // Initial attempt for event 2 (fails) - uses BATCH_DELAY
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
@@ -304,7 +304,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
             })
             .mockResolvedValueOnce({ ok: true });
 
-        telemetry.sendCustomEvent('test_event', { test: true }, {});
+        telemetry.sendCustomEvent('test_event', { test: true });
 
         // Initial attempt
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
