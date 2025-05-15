@@ -78,7 +78,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
 
         mockFetch.mockRejectedValue(new Error('Network error'));
 
-        telemetry.sendCustomEvent('test_event', { test: true }, {});
+        telemetry.sendCustomEvent('test_event', { test: true });
 
         // Initial attempt after batch delay
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
@@ -97,7 +97,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
 
         // Send another event to see if the queue was cleared
         mockFetch.mockResolvedValueOnce({ ok: true });
-        telemetry.sendCustomEvent('test_event_2', { test: true }, {});
+        telemetry.sendCustomEvent('test_event_2', { test: true });
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
         expect(mockFetch).toHaveBeenCalledTimes(2);
         const secondCall = mockFetch.mock.lastCall;
@@ -129,7 +129,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
             })
             .mockResolvedValueOnce({ ok: true }); // Potential next call
 
-        telemetry.sendCustomEvent('test_event', { test: true }, {});
+        telemetry.sendCustomEvent('test_event', { test: true });
 
         // Initial attempt
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
@@ -167,7 +167,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
             })
             .mockResolvedValueOnce({ ok: true }); // Potential next call
 
-        telemetry.sendCustomEvent('test_event', { test: true }, {});
+        telemetry.sendCustomEvent('test_event', { test: true });
 
         // Initial attempt
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);

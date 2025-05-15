@@ -110,8 +110,8 @@ describe('ProtonTelemetry - Event Batching', () => {
         });
 
         // Send multiple events in quick succession
-        telemetry.sendCustomEvent('custom_event_1', { test: true }, {});
-        telemetry.sendCustomEvent('custom_event_2', { test: true }, {});
+        telemetry.sendCustomEvent('custom_event_1', { test: true });
+        telemetry.sendCustomEvent('custom_event_2', { test: true });
 
         // Events should be queued, not sent immediately
         expect(mockFetch).not.toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe('ProtonTelemetry - Event Batching', () => {
             },
         });
 
-        telemetry.sendCustomEvent('custom_event', { test: true }, {});
+        telemetry.sendCustomEvent('custom_event', { test: true });
 
         // Events should be queued, not sent immediately
         expect(mockFetch).not.toHaveBeenCalled();
@@ -181,7 +181,7 @@ describe('ProtonTelemetry - Event Batching', () => {
         });
 
         // Send multiple events in quick succession
-        telemetry.sendCustomEvent('custom_event_1', { test: true }, {});
+        telemetry.sendCustomEvent('custom_event_1', { test: true });
 
         // Events should be queued, not sent immediately
         expect(mockFetch).not.toHaveBeenCalled();
@@ -199,7 +199,7 @@ describe('ProtonTelemetry - Event Batching', () => {
 
         await vi.advanceTimersByTimeAsync(FETCH_DELAY);
 
-        telemetry.sendCustomEvent('custom_event_2', { test: true }, {});
+        telemetry.sendCustomEvent('custom_event_2', { test: true });
 
         // Advance timers
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
@@ -223,7 +223,7 @@ describe('ProtonTelemetry - Event Batching', () => {
         });
 
         // Send multiple events in quick succession
-        telemetry.sendCustomEvent('custom_event_1', { test: true }, {});
+        telemetry.sendCustomEvent('custom_event_1', { test: true });
 
         // Events should be queued, not sent immediately
         expect(mockFetch).not.toHaveBeenCalled();
@@ -245,7 +245,7 @@ describe('ProtonTelemetry - Event Batching', () => {
          */
         await vi.advanceTimersByTimeAsync(FETCH_DELAY - 1);
 
-        telemetry.sendCustomEvent('custom_event_2', { test: true }, {});
+        telemetry.sendCustomEvent('custom_event_2', { test: true });
 
         // Advance timers
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);

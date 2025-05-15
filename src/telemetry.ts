@@ -6,7 +6,6 @@ import type {
     BatchedTelemetryEvents,
     QueuedEvent,
     EventType,
-    CustomEventData,
     CustomEventType,
     StandardEventType,
 } from './types';
@@ -218,11 +217,10 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
         },
         sendCustomEvent: (
             eventType: Exclude<string, StandardEventType>,
-            properties: CustomEventData,
             customData?: Record<string, unknown>,
         ) => {
             if (!shouldSend()) return;
-            void sendData(eventType as CustomEventType, properties, customData);
+            void sendData(eventType as CustomEventType, {}, customData);
         },
         destroy: async () => {
             if (state.batchTimeout) {
@@ -263,8 +261,7 @@ export const createTelemetry = (userConfig: TelemetryConfig) => {
 export const createCustomEventSender = (
     telemetry: ReturnType<typeof createTelemetry>,
     eventType: string,
-    properties: CustomEventData = {},
     customData: Record<string, unknown> = {},
 ) => {
-    return () => telemetry.sendCustomEvent(eventType, properties, customData);
+    return () => telemetry.sendCustomEvent(eventType, customData);
 };
