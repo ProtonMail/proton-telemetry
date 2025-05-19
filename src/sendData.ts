@@ -3,18 +3,11 @@ import type {
     EventPriority,
     EventType,
     QueuedEvent,
+    SendDataConfig,
     TelemetryEvent,
 } from './types';
 import { fetchWithHeaders } from './utils';
 import { BATCH_DELAY, MAX_RETRIES } from './constants';
-
-interface SendDataConfig {
-    debug: boolean;
-    dryRun: boolean;
-    endpoint: string;
-    appVersion: string;
-    uidHeader?: string;
-}
 
 interface SendDataState {
     eventQueue: QueuedEvent[];
