@@ -17,7 +17,24 @@ import {
 import { createSendData } from './sendData';
 import { createConfig } from './config/utils';
 
-export const createTelemetry = (userConfig: TelemetryConfig) => {
+export type CreateTelemetryReturn = {
+    sendPageView: () => void;
+    sendClicks: () => void;
+    sendForms: () => void;
+    sendModalView: (
+        modalId: string,
+        modalType: 'on_click' | 'exit_intent',
+    ) => void;
+    sendCustomEvent: (
+        eventType: Exclude<string, StandardEventType>,
+        customData?: Record<string, unknown>,
+    ) => void;
+    destroy: () => Promise<void>;
+};
+
+export const createTelemetry = (
+    userConfig: TelemetryConfig,
+): CreateTelemetryReturn => {
     const config = createConfig(userConfig);
 
     const state = {
@@ -265,3 +282,5 @@ export const createCustomEventSender = (
 ) => {
     return () => telemetry.sendCustomEvent(eventType, customData);
 };
+
+export type CreateTelemetryType = ReturnType<typeof createTelemetry>;
