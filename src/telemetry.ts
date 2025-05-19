@@ -196,7 +196,10 @@ export const createTelemetry = (
         },
         shouldSend,
     );
-    const performanceObserver = createPerformanceObserver(sendData);
+    const performanceObserver = createPerformanceObserver(
+        sendData,
+        config.debug,
+    );
 
     if (shouldSend()) {
         if (config.events.pageView) {
