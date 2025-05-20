@@ -254,21 +254,63 @@ export const createTelemetry = (
                     ),
                 };
 
-                try {
-                    await fetchWithHeaders(
-                        config.endpoint,
-                        config.appVersion,
-                        config.uidHeader,
-                        {
-                            method: 'POST',
-                            body: JSON.stringify(batchedEvents),
-                            keepalive: true,
-                        },
-                    );
-                    state.eventQueue = [];
-                } catch (error) {
-                    if (config.debug) {
-                        console.error('Telemetry error:', error);
+                const body = JSON.stringify(batchedEvents);
+
+                if (navigator.sendBeacon) {
+                    try {
+                        const blob = new Blob([body], {
+                            type: 'application/json',
+                        });
+                        const success = navigator.sendBeacon(
+                            config.endpoint,
+                            blob,
+                        );
+                        if (success) {
+                            state.eventQueue = [];
+                            if (config.debug) {
+                                console.log(
+                                    '[Telemetry] Successfully sent batch via sendBeacon.',
+                                );
+                            }
+                        } else {
+                            // fall back to fetchWithHeaders
+                            if (config.debug) {
+                                console.warn(
+                                    '[Telemetry] navigator.sendBeacon failed, attempting fallback to fetch.',
+                                );
+                            }
+                        }
+                    } catch (error) {
+                        if (config.debug) {
+                            console.error(
+                                '[Telemetry] Error using navigator.sendBeacon, attempting fallback to fetch:',
+                                error,
+                            );
+                        }
+                    }
+                }
+
+                // Fallback or if sendBeacon is not available / failed and queue isn't empty
+                if (state.eventQueue.length > 0) {
+                    try {
+                        await fetchWithHeaders(
+                            config.endpoint,
+                            config.appVersion,
+                            config.uidHeader,
+                            {
+                                method: 'POST',
+                                body,
+                                keepalive: true,
+                            },
+                        );
+                        state.eventQueue = [];
+                    } catch (error) {
+                        if (config.debug) {
+                            console.error(
+                                'Telemetry error (fetch fallback):',
+                                error,
+                            );
+                        }
                     }
                 }
             }
