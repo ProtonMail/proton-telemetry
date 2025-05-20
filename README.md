@@ -8,20 +8,19 @@ To consume the library in your own repository, please do the following:
 
 ### Install the package
 
-`npm install @protontech/telemetry`
+`npm i @protontech/telemetry`
 
 ### Integrate telemetry in your project
 
 Add this code somewhere where it will run on every page load:
 
 ```ts
-import { ProtonTelemetry } from '@proton/telemetry'
+import { ProtonTelemetry } from '@protontech/telemetry'
 ...
 
 const telemetry = ProtonTelemetry({
     endpoint, // one of either https://telemetry.proton.me/payload or https://telemetry.protonvpn.com/payload
     appVersion: 'web-static@<appVersion>', // e.g. 'web-static@3.14.1'
-    uid: '' // optional
 });
 
 window.protonTelemetry = telemetry;
