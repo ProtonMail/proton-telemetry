@@ -98,7 +98,8 @@ describe('ProtonTelemetry - Retry Logic', () => {
 
         // Check console log for retry message
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs}ms (attempt #1) based on Retry-After header.`,
+            '[Telemetry]',
+            `Server responded with 429. Retrying after ${retryAfterMs}ms (attempt #1) based on Retry-After header.`,
         );
 
         // Should not retry before Retry-After delay and retry right after
@@ -153,7 +154,8 @@ describe('ProtonTelemetry - Retry Logic', () => {
         for (let i = 0; i < MAX_RETRIES; i++) {
             expect(mockFetch).toHaveBeenCalledTimes(expectedCalls);
             expect(consoleSpyLog).toHaveBeenCalledWith(
-                `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs}ms (attempt #${
+                '[Telemetry]',
+                `Server responded with 429. Retrying after ${retryAfterMs}ms (attempt #${
                     i + 1
                 }) based on Retry-After header.`,
             );
@@ -165,7 +167,8 @@ describe('ProtonTelemetry - Retry Logic', () => {
         // The last attempt failed, reaching max retries
         expect(mockFetch).toHaveBeenCalledTimes(MAX_RETRIES + 1);
         expect(consoleSpyError).toHaveBeenCalledWith(
-            `[Telemetry] Max retries (${MAX_RETRIES}) reached after 429 response. Dropping events.`,
+            '[Telemetry]',
+            `Max retries (${MAX_RETRIES}) reached after 429 response. Dropping events.`,
         );
 
         // Verify no more retries happen
@@ -227,21 +230,24 @@ describe('ProtonTelemetry - Retry Logic', () => {
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
         expect(mockFetch).toHaveBeenCalledTimes(1);
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs1}ms (attempt #1) based on Retry-After header.`,
+            '[Telemetry]',
+            `Server responded with 429. Retrying after ${retryAfterMs1}ms (attempt #1) based on Retry-After header.`,
         );
 
         // First retry (fails)
         await vi.advanceTimersByTimeAsync(retryAfterMs1);
         expect(mockFetch).toHaveBeenCalledTimes(2);
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs2}ms (attempt #2) based on Retry-After header.`,
+            '[Telemetry]',
+            `Server responded with 429. Retrying after ${retryAfterMs2}ms (attempt #2) based on Retry-After header.`,
         );
 
         // Second retry (succeeds)
         await vi.advanceTimersByTimeAsync(retryAfterMs2);
         expect(mockFetch).toHaveBeenCalledTimes(3);
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            '[Telemetry] Batch sent successfully after retries.',
+            '[Telemetry]',
+            'Batch sent successfully after retries.',
         );
 
         // Send second event to see if retry count was reset
@@ -252,14 +258,16 @@ describe('ProtonTelemetry - Retry Logic', () => {
         expect(mockFetch).toHaveBeenCalledTimes(4);
         // Check that retry count was reset (attempt #1)
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs1}ms (attempt #1) based on Retry-After header.`,
+            '[Telemetry]',
+            `Server responded with 429. Retrying after ${retryAfterMs1}ms (attempt #1) based on Retry-After header.`,
         );
 
         // First retry for event 2 (succeeds)
         await vi.advanceTimersByTimeAsync(retryAfterMs1);
         expect(mockFetch).toHaveBeenCalledTimes(5);
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            '[Telemetry] Batch sent successfully after retries.',
+            '[Telemetry]',
+            'Batch sent successfully after retries.',
         );
 
         // Verify overall calls and last event data

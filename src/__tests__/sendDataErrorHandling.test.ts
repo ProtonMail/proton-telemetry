@@ -85,7 +85,8 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
 
         expect(consoleSpyError).toHaveBeenCalledWith(
-            '[Telemetry] Network error occurred. Dropping events.',
+            '[Telemetry]',
+            'Network error occurred. Dropping events.',
             expect.any(Error),
         );
 
@@ -136,7 +137,8 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
 
         expect(consoleSpyError).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with status 429 without a valid Retry-After header. Dropping events.`,
+            '[Telemetry]',
+            'Server responded with status 429 without a valid Retry-After header. Dropping events.',
         );
 
         // Advance time beyond any potential retry interval and verify no retry
@@ -174,7 +176,8 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
 
         expect(consoleSpyError).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with status 500 without a valid Retry-After header. Dropping events.`,
+            '[Telemetry]',
+            'Server responded with status 500 without a valid Retry-After header. Dropping events.',
         );
 
         // Advance time beyond any potential retry interval and verify no retry

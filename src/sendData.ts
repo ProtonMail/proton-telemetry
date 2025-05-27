@@ -8,7 +8,7 @@ import type {
 } from './types';
 import { fetchWithHeaders } from './utils';
 import { BATCH_DELAY, MAX_RETRIES } from './constants';
-import { log } from './utils';
+import { log, logError } from './utils';
 
 interface SendDataState {
     eventQueue: QueuedEvent[];
@@ -64,10 +64,7 @@ export function createSendData(
 
             if (response.ok) {
                 if (config.debug && state.retryCount > 0 && isRetryAttempt) {
-                    log(
-                        config.debug,
-                        '[Telemetry] Batch sent successfully after retries.',
-                    );
+                    log(config.debug, 'Batch sent successfully after retries.');
                 }
                 // Queue was already modified by splice. Reset retryCount if this was a successful retry.
                 if (isRetryAttempt) state.retryCount = 0;
@@ -91,7 +88,7 @@ export function createSendData(
                     if (config.debug) {
                         log(
                             config.debug,
-                            `[Telemetry] Server responded with ${response.status}. Retrying after ${delayMs}ms (attempt #${state.retryCount}) based on Retry-After header.`,
+                            `Server responded with ${response.status}. Retrying after ${delayMs}ms (attempt #${state.retryCount}) based on Retry-After header.`,
                         );
                     }
                     setTimeout(() => {
@@ -105,12 +102,12 @@ export function createSendData(
                         if (delayMs === null) {
                             log(
                                 config.debug,
-                                `[Telemetry] Server responded with ${response.status} but invalid Retry-After header ('${retryAfterHeader}'). Dropping events.`,
+                                `Server responded with ${response.status} but invalid Retry-After header ('${retryAfterHeader}'). Dropping events.`,
                             );
                         } else {
-                            log(
+                            logError(
                                 config.debug,
-                                `[Telemetry] Max retries (${MAX_RETRIES}) reached after ${response.status} response. Dropping events.`,
+                                `Max retries (${MAX_RETRIES}) reached after ${response.status} response. Dropping events.`,
                             );
                         }
                     }
@@ -121,9 +118,9 @@ export function createSendData(
             } else {
                 // Status is not 429/503 or Retry-After header is missing: do not retry
                 if (config.debug) {
-                    log(
+                    logError(
                         config.debug,
-                        `[Telemetry] Server responded with status ${response.status} without a valid Retry-After header. Dropping events.`,
+                        `Server responded with status ${response.status} without a valid Retry-After header. Dropping events.`,
                     );
                 }
                 // Events were already spliced, already dropped.
@@ -133,9 +130,9 @@ export function createSendData(
         } catch (error) {
             // Do not retry on network errors
             if (config.debug) {
-                log(
+                logError(
                     config.debug,
-                    '[Telemetry] Network error occurred. Dropping events.',
+                    'Network error occurred. Dropping events.',
                     error,
                 );
             }

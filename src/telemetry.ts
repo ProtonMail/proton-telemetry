@@ -346,20 +346,20 @@ export const createTelemetry = (
                         state.eventQueue = [];
                         log(
                             config.debug,
-                            '[Telemetry] Successfully sent batch via sendBeacon.',
+                            'Successfully sent batch via sendBeacon.',
                         );
                     } else {
                         // fall back to fetchWithHeaders
                         log(
                             config.debug,
-                            '[Telemetry] navigator.sendBeacon failed, attempting fallback to fetch.',
+                            'navigator.sendBeacon failed, attempting fallback to fetch.',
                         );
                     }
                 } catch (error) {
                     if (config.debug) {
                         log(
                             config.debug,
-                            '[Telemetry] Error using navigator.sendBeacon, attempting fallback to fetch:',
+                            'Error using navigator.sendBeacon, attempting fallback to fetch:',
                             error,
                         );
                     }

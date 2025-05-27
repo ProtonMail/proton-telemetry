@@ -231,11 +231,31 @@ function getClosestHeading(element: HTMLElement): HTMLElement | null {
     return null;
 }
 
-// Logging utility
+// Logging utilities
 export const log = (debug: boolean, ...args: unknown[]): void => {
     try {
         if (debug && typeof console !== 'undefined' && console.log) {
             console.log('[Telemetry]', ...args);
+        }
+    } catch {
+        // Fail silently
+    }
+};
+
+export const logWarn = (debug: boolean, ...args: unknown[]): void => {
+    try {
+        if (debug && typeof console !== 'undefined' && console.warn) {
+            console.warn('[Telemetry]', ...args);
+        }
+    } catch {
+        // Fail silently
+    }
+};
+
+export const logError = (debug: boolean, ...args: unknown[]): void => {
+    try {
+        if (debug && typeof console !== 'undefined' && console.error) {
+            console.error('[Telemetry]', ...args);
         }
     } catch {
         // Fail silently
