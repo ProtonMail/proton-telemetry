@@ -1,6 +1,7 @@
 // Cross-domain ID management using cookies for Proton domains
 // Supports any subdomain under proton.me, protonvpn.com, and proton.black
 import type { CrossDomainStorageConfig } from './types';
+import { log } from './utils';
 
 interface DomainInfo {
     rootDomain: string;
@@ -44,17 +45,6 @@ const detectDomainInfo = (): DomainInfo | null => {
         return null;
     } catch {
         return null;
-    }
-};
-
-// Logging utility
-export const safeLog = (debug: boolean, ...args: unknown[]): void => {
-    try {
-        if (debug && typeof console !== 'undefined' && console.log) {
-            console.log('[CrossDomainStorage]', ...args);
-        }
-    } catch {
-        // Silently fail
     }
 };
 
@@ -160,7 +150,7 @@ export const createCrossDomainStorage = (
     const setTelemetryId = (aId: string): boolean => {
         try {
             if (!domainInfo || !aId || typeof document === 'undefined') {
-                safeLog(
+                log(
                     debug,
                     'Cannot set telemetry ID: missing domain info or aId',
                 );
@@ -176,11 +166,11 @@ export const createCrossDomainStorage = (
             );
 
             document.cookie = cookieString;
-            safeLog(debug, 'Set telemetry ID cookie:', cookieValue);
+            log(debug, 'Set telemetry ID cookie:', cookieValue);
 
             return verifyWriteSuccess(aId);
         } catch (error) {
-            safeLog(debug, 'Error setting telemetry ID:', error);
+            log(debug, 'Error setting telemetry ID:', error);
             return false;
         }
     };
@@ -202,10 +192,10 @@ export const createCrossDomainStorage = (
                 return null;
             }
 
-            safeLog(debug, 'Retrieved telemetry ID:', parsed.aId);
+            log(debug, 'Retrieved telemetry ID:', parsed.aId);
             return parsed.aId;
         } catch (error) {
-            safeLog(debug, 'Error getting telemetry ID:', error);
+            log(debug, 'Error getting telemetry ID:', error);
             return null;
         }
     };
@@ -219,14 +209,14 @@ export const createCrossDomainStorage = (
 
             if (typeof localStorage !== 'undefined') {
                 localStorage.setItem(storageKey, aId);
-                safeLog(debug, 'Transferred telemetry ID to localStorage');
+                log(debug, 'Transferred telemetry ID to localStorage');
             }
 
             // Cleanup cookie after successful transfer
             cleanupCookie();
             return true;
         } catch (error) {
-            safeLog(debug, 'Error transferring to localStorage:', error);
+            log(debug, 'Error transferring to localStorage:', error);
             return false;
         }
     };
@@ -256,9 +246,9 @@ export const createCrossDomainStorage = (
             ].join('; ');
 
             document.cookie = expiredCookie;
-            safeLog(debug, 'Cleaned up telemetry ID cookie');
+            log(debug, 'Cleaned up telemetry ID cookie');
         } catch (error) {
-            safeLog(debug, 'Error cleaning up cookie:', error);
+            log(debug, 'Error cleaning up cookie:', error);
         }
     };
 
@@ -318,7 +308,7 @@ export const handleCrossDomainTelemetryId = (
 
         return null;
     } catch {
-        // Silently fail and return current aId or null
+        // Fail silently and return current aId or null
         return currentAId || null;
     }
 };

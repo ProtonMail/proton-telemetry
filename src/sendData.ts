@@ -8,6 +8,7 @@ import type {
 } from './types';
 import { fetchWithHeaders } from './utils';
 import { BATCH_DELAY, MAX_RETRIES } from './constants';
+import { log } from './utils';
 
 interface SendDataState {
     eventQueue: QueuedEvent[];
@@ -63,7 +64,8 @@ export function createSendData(
 
             if (response.ok) {
                 if (config.debug && state.retryCount > 0 && isRetryAttempt) {
-                    console.log(
+                    log(
+                        config.debug,
                         '[Telemetry] Batch sent successfully after retries.',
                     );
                 }
@@ -87,7 +89,8 @@ export function createSendData(
                 if (delayMs !== null && state.retryCount < MAX_RETRIES) {
                     state.retryCount++;
                     if (config.debug) {
-                        console.log(
+                        log(
+                            config.debug,
                             `[Telemetry] Server responded with ${response.status}. Retrying after ${delayMs}ms (attempt #${state.retryCount}) based on Retry-After header.`,
                         );
                     }
@@ -100,11 +103,13 @@ export function createSendData(
                     // Max retries reached or invalid Retry-After header
                     if (config.debug) {
                         if (delayMs === null) {
-                            console.error(
+                            log(
+                                config.debug,
                                 `[Telemetry] Server responded with ${response.status} but invalid Retry-After header ('${retryAfterHeader}'). Dropping events.`,
                             );
                         } else {
-                            console.error(
+                            log(
+                                config.debug,
                                 `[Telemetry] Max retries (${MAX_RETRIES}) reached after ${response.status} response. Dropping events.`,
                             );
                         }
@@ -116,7 +121,8 @@ export function createSendData(
             } else {
                 // Status is not 429/503 or Retry-After header is missing: do not retry
                 if (config.debug) {
-                    console.error(
+                    log(
+                        config.debug,
                         `[Telemetry] Server responded with status ${response.status} without a valid Retry-After header. Dropping events.`,
                     );
                 }
@@ -127,7 +133,8 @@ export function createSendData(
         } catch (error) {
             // Do not retry on network errors
             if (config.debug) {
-                console.error(
+                log(
+                    config.debug,
                     '[Telemetry] Network error occurred. Dropping events.',
                     error,
                 );
@@ -147,7 +154,7 @@ export function createSendData(
         const event = deps.createEventPayload(eventType, eventData, customData);
 
         if (config.dryRun) {
-            console.log('[DRY RUN] event:', event);
+            log(config.debug, '[DRY RUN] event:', event);
             return true;
         }
 

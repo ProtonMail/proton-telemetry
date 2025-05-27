@@ -17,13 +17,13 @@ import {
     safeWindow,
     safeNavigator,
     safePerformance,
+    log,
 } from './utils';
 import { createSendData } from './sendData';
 import { createConfig } from './config/utils';
 import {
     handleCrossDomainTelemetryId,
     createCrossDomainStorage,
-    safeLog,
 } from './crossDomainStorage';
 
 export type CreateTelemetryReturn = {
@@ -93,7 +93,7 @@ export const createTelemetry = (
                 );
                 crossDomainStorage.cleanupCookie();
             } catch (error) {
-                safeLog(
+                log(
                     config.debug,
                     'Error cleaning up cross-domain cookie:',
                     error,
@@ -237,7 +237,7 @@ export const createTelemetry = (
                             crossDomainStorage.setTelemetryId(stored);
                         }
                     } catch (e) {
-                        safeLog(config.debug, 'Error setting telemetry ID:', e);
+                        log(config.debug, 'Error setting telemetry ID:', e);
                     }
 
                     return stored;
@@ -257,27 +257,25 @@ export const createTelemetry = (
                         crossDomainStorage.setTelemetryId(newId);
                     }
                 } catch (e) {
-                    safeLog(config.debug, 'Error setting telemetry ID:', e);
+                    log(config.debug, 'Error setting telemetry ID:', e);
                 }
 
                 void sendData('random_uid_created', {}, undefined, 'low');
                 return newId;
             } catch (error) {
-                if (config.debug) {
-                    console.warn(
-                        'Telemetry: Error accessing localStorage in getOrCreateAId:',
-                        error,
-                    );
-                }
+                log(
+                    config.debug,
+                    'Telemetry: Error accessing localStorage in getOrCreateAId:',
+                    error,
+                );
                 state.aId = generateMessageId();
                 return state.aId;
             }
         } else {
-            if (config.debug) {
-                console.warn(
-                    'Telemetry: localStorage is not available. aId will not be persisted.',
-                );
-            }
+            log(
+                config.debug,
+                'Telemetry: localStorage is not available. aId will not be persisted.',
+            );
             state.aId = generateMessageId();
             return state.aId;
         }
@@ -346,22 +344,21 @@ export const createTelemetry = (
                     const success = navigator.sendBeacon(config.endpoint, blob);
                     if (success) {
                         state.eventQueue = [];
-                        if (config.debug) {
-                            console.log(
-                                '[Telemetry] Successfully sent batch via sendBeacon.',
-                            );
-                        }
+                        log(
+                            config.debug,
+                            '[Telemetry] Successfully sent batch via sendBeacon.',
+                        );
                     } else {
                         // fall back to fetchWithHeaders
-                        if (config.debug) {
-                            console.warn(
-                                '[Telemetry] navigator.sendBeacon failed, attempting fallback to fetch.',
-                            );
-                        }
+                        log(
+                            config.debug,
+                            '[Telemetry] navigator.sendBeacon failed, attempting fallback to fetch.',
+                        );
                     }
                 } catch (error) {
                     if (config.debug) {
-                        console.error(
+                        log(
+                            config.debug,
                             '[Telemetry] Error using navigator.sendBeacon, attempting fallback to fetch:',
                             error,
                         );
@@ -385,7 +382,8 @@ export const createTelemetry = (
                     state.eventQueue = [];
                 } catch (error) {
                     if (config.debug) {
-                        console.error(
+                        log(
+                            config.debug,
                             'Telemetry error (fetch fallback):',
                             error,
                         );

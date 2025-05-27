@@ -230,3 +230,14 @@ function getClosestHeading(element: HTMLElement): HTMLElement | null {
 
     return null;
 }
+
+// Logging utility
+export const log = (debug: boolean, ...args: unknown[]): void => {
+    try {
+        if (debug && typeof console !== 'undefined' && console.log) {
+            console.log('[Telemetry]', ...args);
+        }
+    } catch {
+        // Fail silently
+    }
+};
