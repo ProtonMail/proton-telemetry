@@ -1,81 +1,41 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createTelemetry as ProtonTelemetry } from '../telemetry';
 import { BATCH_DELAY, MAX_RETRIES } from '../constants';
+import {
+    createFetchMock,
+    createConsoleMocks,
+    setupBasicTelemetryTest,
+    setupTimers,
+    cleanupMocks,
+} from './helpers';
+import { createBasicTelemetryConfig } from './helpers/fixtures';
 
 // Tests focusing on the retry mechanism triggered by sendData
 describe('ProtonTelemetry - Retry Logic', () => {
     let mockFetch: ReturnType<typeof vi.fn>;
-    let localStorageMock: {
-        getItem: (key: string) => string | null;
-        setItem: (key: string, value: string) => void;
-        removeItem: (key: string) => void;
-    };
-    let mockStorage: Record<string, string | undefined>;
     let consoleSpyLog: ReturnType<typeof vi.spyOn>;
     let consoleSpyError: ReturnType<typeof vi.spyOn>;
+    let cleanupTimers: () => void;
 
     beforeEach(() => {
-        vi.useFakeTimers();
+        cleanupTimers = setupTimers();
+        setupBasicTelemetryTest();
 
-        // Use preset id to prevent random_uid_created event
-        mockStorage = {
-            aId: 'test-uuid',
-        };
-        localStorageMock = {
-            // nosemgrep: gitlab.eslint.detect-object-injection
-            getItem: vi.fn((key: string) => mockStorage[key] ?? null),
-            setItem: vi.fn((key: string, value: string) => {
-                // nosemgrep: gitlab.eslint.detect-object-injection
-                mockStorage[key] = value;
-            }),
-            removeItem: vi.fn(),
-        };
-        vi.stubGlobal('localStorage', localStorageMock);
-
-        mockFetch = vi.fn();
-        vi.stubGlobal('fetch', mockFetch);
-
-        vi.stubGlobal('navigator', {
-            doNotTrack: null,
-            globalPrivacyControl: false,
-            language: 'en-US',
-        });
-
-        vi.stubGlobal('process', {
-            env: {
-                CI_COMMIT_TAG: 'v1.0.0+test',
-            },
-        });
-
-        vi.stubGlobal('performance', {
-            now: () => 0,
-        });
-
-        consoleSpyLog = vi.spyOn(console, 'log');
-        consoleSpyError = vi.spyOn(console, 'error');
+        mockFetch = createFetchMock();
+        const consoleMocks = createConsoleMocks();
+        consoleSpyLog = consoleMocks.consoleSpyLog;
+        consoleSpyError = consoleMocks.consoleSpyError;
     });
 
     afterEach(() => {
-        vi.useRealTimers();
-        vi.restoreAllMocks();
+        cleanupTimers();
+        cleanupMocks();
         consoleSpyLog.mockRestore();
         consoleSpyError.mockRestore();
     });
 
     it('retries on 429/503 with Retry-After header', async () => {
-        const telemetry = ProtonTelemetry({
-            endpoint: 'https://telemetry.test.com',
-            appVersion: 'appVersion',
-            debug: true,
-            events: {
-                pageView: false,
-                click: false,
-                form: false,
-                performance: false,
-                visibility: false,
-                modal: false,
-            },
-        });
+        const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         const retryAfterSeconds = 2;
         const retryAfterMs = retryAfterSeconds * 1000;
@@ -117,19 +77,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
     });
 
     it('drops events after max retries on 429/503 with Retry-After', async () => {
-        const telemetry = ProtonTelemetry({
-            endpoint: 'https://telemetry.test.com',
-            appVersion: 'appVersion',
-            debug: true,
-            events: {
-                pageView: false,
-                click: false,
-                form: false,
-                performance: false,
-                visibility: false,
-                modal: false,
-            },
-        });
+        const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         const retryAfterSeconds = 1;
         const retryAfterMs = retryAfterSeconds * 1000;
@@ -177,19 +125,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
     });
 
     it('resets retry count after successful request following retries', async () => {
-        const telemetry = ProtonTelemetry({
-            endpoint: 'https://telemetry.test.com',
-            appVersion: 'appVersion',
-            debug: true,
-            events: {
-                pageView: false,
-                click: false,
-                form: false,
-                performance: false,
-                visibility: false,
-                modal: false,
-            },
-        });
+        const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         const retryAfterSeconds1 = 1;
         const retryAfterMs1 = retryAfterSeconds1 * 1000;
@@ -278,18 +214,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
     });
 
     it('does not duplicate events on retry (429 with Retry-After)', async () => {
-        const telemetry = ProtonTelemetry({
-            endpoint: 'https://telemetry.test.com',
-            appVersion: 'appVersion',
-            events: {
-                pageView: false,
-                click: false,
-                form: false,
-                performance: false,
-                visibility: false,
-                modal: false,
-            },
-        });
+        const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         const retryAfterSeconds = 1;
         const retryAfterMs = retryAfterSeconds * 1000;

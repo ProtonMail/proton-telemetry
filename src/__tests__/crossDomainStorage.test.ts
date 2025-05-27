@@ -3,143 +3,36 @@ import {
     createCrossDomainStorage,
     handleCrossDomainTelemetryId,
 } from '../crossDomainStorage';
-
-// Mock btoa and atob for Node.js environment - use 'utf8' encoding
-global.btoa = (str: string) => Buffer.from(str, 'utf8').toString('base64');
-global.atob = (str: string) => Buffer.from(str, 'base64').toString('utf8');
-
-// Create a proper cookie mock that simulates browser behavior
-const createCookieMock = () => {
-    let cookies: Record<string, string> = {};
-    let lastSetCookie = '';
-
-    return {
-        get cookie() {
-            return Object.entries(cookies)
-                .map(([name, value]) => `${name}=${value}`)
-                .join('; ');
-        },
-        set cookie(cookieString: string) {
-            lastSetCookie = cookieString; // Store the last set cookie for testing
-
-            // Parse cookie string and store it
-            const parts = cookieString.split(';').map((part) => part.trim());
-            const [nameValue] = parts;
-
-            // Handle values that contain '=' (like base64 encoded values)
-            const equalIndex = nameValue.indexOf('=');
-            if (equalIndex !== -1) {
-                const name = nameValue.substring(0, equalIndex);
-                const value = nameValue.substring(equalIndex + 1);
-
-                if (name && value !== undefined) {
-                    // Check for Max-Age=0 or expired date (cookie deletion)
-                    const maxAgePart = parts.find((part) =>
-                        part.startsWith('Max-Age='),
-                    );
-                    const expiresPart = parts.find((part) =>
-                        part.startsWith('expires='),
-                    );
-
-                    let shouldDelete = false;
-                    if (maxAgePart) {
-                        // Max-Age=0 means delete
-                        if (maxAgePart === 'Max-Age=0') {
-                            shouldDelete = true;
-                        }
-                    }
-                    if (expiresPart) {
-                        // Check if date is in the past (simplified check for 1970)
-                        if (expiresPart.includes('1970')) {
-                            shouldDelete = true;
-                        }
-                    }
-
-                    if (shouldDelete) {
-                        delete cookies[name];
-                    } else {
-                        cookies[name] = value;
-                    }
-                }
-            }
-        },
-        get lastSetCookie() {
-            return lastSetCookie;
-        },
-        clear() {
-            cookies = {};
-            lastSetCookie = '';
-        },
-    };
-};
-
-// Mock DOM APIs
-const mockCookie = createCookieMock();
-
-const mockDocument = {
-    get cookie() {
-        return mockCookie.cookie;
-    },
-    set cookie(value: string) {
-        mockCookie.cookie = value;
-    },
-};
-
-const mockWindow = {
-    location: {
-        hostname: 'proton.me',
-        protocol: 'https:',
-    },
-};
-
-const mockLocalStorage = (() => {
-    let store: Record<string, string> = {};
-    return {
-        getItem: vi.fn((key: string) => store[key] || null),
-        setItem: vi.fn((key: string, value: string) => {
-            store[key] = value;
-        }),
-        removeItem: vi.fn((key: string) => {
-            delete store[key];
-        }),
-        clear: vi.fn(() => {
-            store = {};
-        }),
-    };
-})();
-
-Object.defineProperty(global, 'document', {
-    value: mockDocument,
-    writable: true,
-});
-
-Object.defineProperty(global, 'window', {
-    value: mockWindow,
-    writable: true,
-});
-
-Object.defineProperty(global, 'localStorage', {
-    value: mockLocalStorage,
-    writable: true,
-});
+import {
+    setupCrossDomainTest,
+    cleanupMocks,
+    createCookieMock,
+    createLocalStorageMock,
+    createWindowMock,
+} from './helpers';
 
 describe('CrossDomainStorage', () => {
     let storage: ReturnType<typeof createCrossDomainStorage>;
+    let mockCookie: ReturnType<typeof createCookieMock>;
+    let mockLocalStorage: ReturnType<typeof createLocalStorageMock>;
+    let mockWindow: ReturnType<typeof createWindowMock>;
 
     beforeEach(() => {
-        mockCookie.clear();
-        mockLocalStorage.clear();
-        mockWindow.location.hostname = 'proton.me';
+        const mocks = setupCrossDomainTest('proton.me');
+        mockCookie = mocks.mockCookie;
+        mockLocalStorage = mocks.mockLocalStorage;
+        mockWindow = mocks.mockWindow;
+
         storage = createCrossDomainStorage({}, true);
     });
 
     afterEach(() => {
-        vi.clearAllMocks();
+        cleanupMocks();
     });
 
-    describe('Domain Detection', () => {
+    describe('Domain detection', () => {
         it('should detect proton.me domain', () => {
-            mockWindow.location.hostname = 'proton.me';
+            setupCrossDomainTest('proton.me');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
 
@@ -149,7 +42,7 @@ describe('CrossDomainStorage', () => {
         });
 
         it('should detect any proton.me subdomain', () => {
-            mockWindow.location.hostname = 'any.subdomain.proton.me';
+            setupCrossDomainTest('any.subdomain.proton.me');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
 
@@ -159,7 +52,7 @@ describe('CrossDomainStorage', () => {
         });
 
         it('should detect protonvpn.com domain', () => {
-            mockWindow.location.hostname = 'protonvpn.com';
+            setupCrossDomainTest('protonvpn.com');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
 
@@ -169,7 +62,7 @@ describe('CrossDomainStorage', () => {
         });
 
         it('should detect any protonvpn.com subdomain', () => {
-            mockWindow.location.hostname = 'any.subdomain.protonvpn.com';
+            setupCrossDomainTest('any.subdomain.protonvpn.com');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
 
@@ -179,7 +72,7 @@ describe('CrossDomainStorage', () => {
         });
 
         it('should detect proton.black scientist environment', () => {
-            mockWindow.location.hostname = 'scientist123.proton.black';
+            setupCrossDomainTest('scientist123.proton.black');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
 
@@ -189,8 +82,7 @@ describe('CrossDomainStorage', () => {
         });
 
         it('should detect any proton.black subdomain', () => {
-            mockWindow.location.hostname =
-                'any.subdomain.scientist123.proton.black';
+            setupCrossDomainTest('any.subdomain.scientist123.proton.black');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
 
@@ -208,7 +100,7 @@ describe('CrossDomainStorage', () => {
         });
     });
 
-    describe('Telemetry ID Management', () => {
+    describe('Telemetry ID management', () => {
         it('should set and get telemetry ID', () => {
             const testId = 'test-telemetry-id-123';
             const success = storage.setTelemetryId(testId);
@@ -249,7 +141,7 @@ describe('CrossDomainStorage', () => {
         });
     });
 
-    describe('LocalStorage Transfer', () => {
+    describe('LocalStorage transfer', () => {
         it('should transfer telemetry ID to localStorage', () => {
             const testId = 'test-telemetry-id-123';
             storage.setTelemetryId(testId);
@@ -283,7 +175,7 @@ describe('CrossDomainStorage', () => {
         });
     });
 
-    describe('Cookie Cleanup', () => {
+    describe('Cookie cleanup', () => {
         it('should clean up cookie', () => {
             const testId = 'test-telemetry-id-123';
             storage.setTelemetryId(testId);
@@ -304,7 +196,7 @@ describe('CrossDomainStorage', () => {
         });
     });
 
-    describe('Support Detection', () => {
+    describe('Support detection', () => {
         it('should detect support when on supported domain', () => {
             mockWindow.location.hostname = 'proton.me';
             const storage = createCrossDomainStorage();
@@ -320,7 +212,7 @@ describe('CrossDomainStorage', () => {
         });
     });
 
-    describe('Error Handling', () => {
+    describe('Error handling', () => {
         it('should not crash when document is unavailable', () => {
             const originalDocument = global.document;
             // @ts-expect-error - Intentionally deleting global.document for testing
@@ -353,10 +245,11 @@ describe('CrossDomainStorage', () => {
 });
 
 describe('handleCrossDomainTelemetryId', () => {
+    let mockLocalStorage: ReturnType<typeof createLocalStorageMock>;
+
     beforeEach(() => {
-        mockCookie.clear();
-        mockLocalStorage.clear();
-        mockWindow.location.hostname = 'proton.me';
+        const mocks = setupCrossDomainTest('proton.me');
+        mockLocalStorage = mocks.mockLocalStorage;
     });
 
     it('should return current aId when provided', () => {

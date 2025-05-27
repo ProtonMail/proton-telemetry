@@ -1,3 +1,10 @@
+// Re-export from helpers for backward compatibility
+export { setupGlobalMocks } from './helpers/setup';
+
+// Call global setup
+import { setupGlobalMocks } from './helpers/setup';
+setupGlobalMocks();
+
 // Mock crypto API
 Object.defineProperty(global, 'crypto', {
     value: {
