@@ -20,8 +20,8 @@ interface CrossDomainStorageInstance {
 const SUPPORTED_DOMAINS = ['proton.me', 'protonvpn.com', 'proton.black'];
 
 const DEFAULT_CONFIG: Required<CrossDomainStorageConfig> = {
-    cookieName: 'pt_aid',
-    maxAge: 300, // 5 minutes
+    cookieName: 'aId',
+    maxAge: 3600 * 24, // 24 hours
 };
 
 // Detect current domain configuration
