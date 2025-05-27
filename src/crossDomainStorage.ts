@@ -1,14 +1,9 @@
-// Cross-domain ID management using cookies for proton.me and protonvpn.com
-// Supports proton.me/account.proton.me/lumo.proton.me and protonvpn.com/account.protonvpn.com
-interface CrossDomainStorageConfig {
-    cookieName?: string;
-    maxAge?: number;
-    debug?: boolean;
-}
+// Cross-domain ID management using cookies for Proton domains
+// Supports any subdomain under proton.me, protonvpn.com, and proton.black
+import type { CrossDomainStorageConfig } from './types';
 
 interface DomainInfo {
     rootDomain: string;
-    subdomains: string[];
 }
 
 interface CrossDomainStorageInstance {
@@ -20,66 +15,12 @@ interface CrossDomainStorageInstance {
     getDomainInfo: () => DomainInfo | null;
 }
 
-const DOMAIN_CONFIGS: Record<string, DomainInfo> = {
-    'proton.me': {
-        rootDomain: 'proton.me',
-        subdomains: ['account.proton.me', 'lumo.proton.me'],
-    },
-    'protonvpn.com': {
-        rootDomain: 'protonvpn.com',
-        subdomains: ['account.protonvpn.com'],
-    },
-    // Scientist environments
-    'proton.black': {
-        rootDomain: 'proton.black',
-        subdomains: [], // Will be populated dynamically
-    },
-};
+// Supported root domains
+const SUPPORTED_DOMAINS = ['proton.me', 'protonvpn.com', 'proton.black'];
 
 const DEFAULT_CONFIG: Required<CrossDomainStorageConfig> = {
-    cookieName: 'aId',
+    cookieName: 'pt_aid',
     maxAge: 300, // 5 minutes
-    debug: false,
-};
-
-// Generate list of potential scientist subdomains based on current hostname
-const getScientistSubdomains = (hostname: string): string[] => {
-    const subdomains: string[] = [];
-
-    // Extract scientist name from hostname
-    let scientistName = '';
-
-    if (
-        hostname.startsWith('protonvpn-com.') &&
-        hostname.endsWith('.proton.black')
-    ) {
-        // Format: protonvpn-com.<scientist>.proton.black
-        scientistName = hostname
-            .replace('protonvpn-com.', '')
-            .replace('.proton.black', '');
-    } else if (
-        hostname.endsWith('.proton.black') &&
-        hostname !== 'proton.black'
-    ) {
-        // Format: <scientist>.proton.black or <subdomain>.<scientist>.proton.black
-        const parts = hostname.replace('.proton.black', '').split('.');
-        scientistName = parts.at(-1) ?? '';
-    }
-
-    if (scientistName) {
-        // Generate all possible subdomain combinations for this scientist
-        subdomains.push(
-            // Proton.me style environments
-            `${scientistName}.proton.black`,
-            `account.${scientistName}.proton.black`,
-            `lumo.${scientistName}.proton.black`,
-            // ProtonVPN.com style environments
-            `protonvpn-com.${scientistName}.proton.black`,
-            `account.protonvpn-com.${scientistName}.proton.black`,
-        );
-    }
-
-    return subdomains;
 };
 
 // Detect current domain configuration
@@ -91,30 +32,12 @@ const detectDomainInfo = (): DomainInfo | null => {
 
         const hostname = window.location.hostname.toLowerCase();
 
-        // Check for scientist environments first (*.proton.black)
-        if (hostname.endsWith('.proton.black') || hostname === 'proton.black') {
-            return {
-                rootDomain: 'proton.black',
-                subdomains: getScientistSubdomains(hostname),
-            };
-        }
-
-        // Check for exact matches in production environments
-        for (const [domain, info] of Object.entries(DOMAIN_CONFIGS)) {
-            if (domain === 'proton.black') continue; // already handled above
-
-            if (hostname === domain || hostname === `www.${domain}`) {
-                return info;
-            }
-
-            // Check subdomains
-            if (info.subdomains.some((subdomain) => hostname === subdomain)) {
-                return info;
-            }
-
-            // Check if hostname ends with the root domain
-            if (hostname.endsWith(`.${domain}`)) {
-                return info;
+        // Check each supported domain
+        for (const domain of SUPPORTED_DOMAINS) {
+            if (hostname === domain || hostname.endsWith(`.${domain}`)) {
+                return {
+                    rootDomain: domain,
+                };
             }
         }
 
@@ -229,6 +152,7 @@ const getCookieValue = (cookieName: string): string | null => {
 // Create a cross-domain storage instance
 export const createCrossDomainStorage = (
     config: CrossDomainStorageConfig = {},
+    debug = false,
 ): CrossDomainStorageInstance => {
     const finalConfig = { ...DEFAULT_CONFIG, ...config };
     const domainInfo = detectDomainInfo();
@@ -237,8 +161,8 @@ export const createCrossDomainStorage = (
         try {
             if (!domainInfo || !aId || typeof document === 'undefined') {
                 safeLog(
-                    finalConfig.debug,
-                    'Cannot set analytics ID: missing domain info or aId',
+                    debug,
+                    'Cannot set telemetry ID: missing domain info or aId',
                 );
                 return false;
             }
@@ -252,11 +176,11 @@ export const createCrossDomainStorage = (
             );
 
             document.cookie = cookieString;
-            safeLog(finalConfig.debug, 'Set telemetry ID cookie:', cookieValue);
+            safeLog(debug, 'Set telemetry ID cookie:', cookieValue);
 
             return verifyWriteSuccess(aId);
         } catch (error) {
-            safeLog(finalConfig.debug, 'Error setting telemetry ID:', error);
+            safeLog(debug, 'Error setting telemetry ID:', error);
             return false;
         }
     };
@@ -278,10 +202,10 @@ export const createCrossDomainStorage = (
                 return null;
             }
 
-            safeLog(finalConfig.debug, 'Retrieved telemetry ID:', parsed.aId);
+            safeLog(debug, 'Retrieved telemetry ID:', parsed.aId);
             return parsed.aId;
         } catch (error) {
-            safeLog(finalConfig.debug, 'Error getting telemetry ID:', error);
+            safeLog(debug, 'Error getting telemetry ID:', error);
             return null;
         }
     };
@@ -295,21 +219,14 @@ export const createCrossDomainStorage = (
 
             if (typeof localStorage !== 'undefined') {
                 localStorage.setItem(storageKey, aId);
-                safeLog(
-                    finalConfig.debug,
-                    'Transferred telemetry ID to localStorage',
-                );
+                safeLog(debug, 'Transferred telemetry ID to localStorage');
             }
 
             // Cleanup cookie after successful transfer
             cleanupCookie();
             return true;
         } catch (error) {
-            safeLog(
-                finalConfig.debug,
-                'Error transferring to localStorage:',
-                error,
-            );
+            safeLog(debug, 'Error transferring to localStorage:', error);
             return false;
         }
     };
@@ -339,9 +256,9 @@ export const createCrossDomainStorage = (
             ].join('; ');
 
             document.cookie = expiredCookie;
-            safeLog(finalConfig.debug, 'Cleaned up telemetry ID cookie');
+            safeLog(debug, 'Cleaned up telemetry ID cookie');
         } catch (error) {
-            safeLog(finalConfig.debug, 'Error cleaning up cookie:', error);
+            safeLog(debug, 'Error cleaning up cookie:', error);
         }
     };
 
@@ -376,9 +293,10 @@ export const createCrossDomainStorage = (
 export const handleCrossDomainTelemetryId = (
     currentAId?: string,
     config?: CrossDomainStorageConfig,
+    debug = false,
 ): string | null => {
     try {
-        const storage = createCrossDomainStorage(config);
+        const storage = createCrossDomainStorage(config, debug);
 
         if (!storage.isSupported()) {
             return currentAId || null;

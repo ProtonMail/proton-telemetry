@@ -76,14 +76,22 @@ export const createTelemetry = (
         const baseShouldSend = !(dnt === '1' || dnt === 'yes' || gpc === true);
 
         if (!baseShouldSend) {
-            // Safely try to remove aId
+            // Safely try to remove aId from localStorage and cross-domain storage
             try {
+                // Clean up localStorage
                 if (
                     typeof localStorage !== 'undefined' &&
                     localStorage.getItem('aId')
                 ) {
                     localStorage.removeItem('aId');
                 }
+
+                // Clean up cross-domain storage
+                const crossDomainStorage = createCrossDomainStorage(
+                    config.crossDomain,
+                    config.debug,
+                );
+                crossDomainStorage.cleanupCookie();
             } catch (error) {
                 safeLog(
                     config.debug,
@@ -207,6 +215,7 @@ export const createTelemetry = (
                 const crossDomainAId = handleCrossDomainTelemetryId(
                     stored || undefined,
                     config.crossDomain,
+                    config.debug,
                 );
 
                 if (crossDomainAId && crossDomainAId !== stored) {
@@ -222,6 +231,7 @@ export const createTelemetry = (
                     try {
                         const crossDomainStorage = createCrossDomainStorage(
                             config.crossDomain,
+                            config.debug,
                         );
                         if (crossDomainStorage.isSupported()) {
                             crossDomainStorage.setTelemetryId(stored);
@@ -241,6 +251,7 @@ export const createTelemetry = (
                 try {
                     const crossDomainStorage = createCrossDomainStorage(
                         config.crossDomain,
+                        config.debug,
                     );
                     if (crossDomainStorage.isSupported()) {
                         crossDomainStorage.setTelemetryId(newId);
@@ -386,7 +397,10 @@ export const createTelemetry = (
         eventSender.destroy();
 
         // Clean up cross-domain cookie
-        const crossDomainStorage = createCrossDomainStorage(config.crossDomain);
+        const crossDomainStorage = createCrossDomainStorage(
+            config.crossDomain,
+            config.debug,
+        );
         crossDomainStorage.cleanupCookie();
     };
 

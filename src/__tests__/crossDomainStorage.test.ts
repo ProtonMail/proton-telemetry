@@ -130,7 +130,7 @@ describe('CrossDomainStorage', () => {
         mockCookie.clear();
         mockLocalStorage.clear();
         mockWindow.location.hostname = 'proton.me';
-        storage = createCrossDomainStorage({ debug: true });
+        storage = createCrossDomainStorage({}, true);
     });
 
     afterEach(() => {
@@ -145,18 +145,16 @@ describe('CrossDomainStorage', () => {
 
             expect(domainInfo).toEqual({
                 rootDomain: 'proton.me',
-                subdomains: ['account.proton.me', 'lumo.proton.me'],
             });
         });
 
-        it('should detect account.proton.me subdomain', () => {
-            mockWindow.location.hostname = 'account.proton.me';
+        it('should detect any proton.me subdomain', () => {
+            mockWindow.location.hostname = 'any.subdomain.proton.me';
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
 
             expect(domainInfo).toEqual({
                 rootDomain: 'proton.me',
-                subdomains: ['account.proton.me', 'lumo.proton.me'],
             });
         });
 
@@ -167,7 +165,37 @@ describe('CrossDomainStorage', () => {
 
             expect(domainInfo).toEqual({
                 rootDomain: 'protonvpn.com',
-                subdomains: ['account.protonvpn.com'],
+            });
+        });
+
+        it('should detect any protonvpn.com subdomain', () => {
+            mockWindow.location.hostname = 'any.subdomain.protonvpn.com';
+            const storage = createCrossDomainStorage();
+            const domainInfo = storage.getDomainInfo();
+
+            expect(domainInfo).toEqual({
+                rootDomain: 'protonvpn.com',
+            });
+        });
+
+        it('should detect proton.black scientist environment', () => {
+            mockWindow.location.hostname = 'scientist123.proton.black';
+            const storage = createCrossDomainStorage();
+            const domainInfo = storage.getDomainInfo();
+
+            expect(domainInfo).toEqual({
+                rootDomain: 'proton.black',
+            });
+        });
+
+        it('should detect any proton.black subdomain', () => {
+            mockWindow.location.hostname =
+                'any.subdomain.scientist123.proton.black';
+            const storage = createCrossDomainStorage();
+            const domainInfo = storage.getDomainInfo();
+
+            expect(domainInfo).toEqual({
+                rootDomain: 'proton.black',
             });
         });
 
@@ -178,45 +206,11 @@ describe('CrossDomainStorage', () => {
 
             expect(domainInfo).toBeNull();
         });
-
-        it('should detect scientist environments', () => {
-            mockWindow.location.hostname = 'alice.proton.black';
-            const storage = createCrossDomainStorage();
-            const domainInfo = storage.getDomainInfo();
-
-            expect(domainInfo).toEqual({
-                rootDomain: 'proton.black',
-                subdomains: [
-                    'alice.proton.black',
-                    'account.alice.proton.black',
-                    'lumo.alice.proton.black',
-                    'protonvpn-com.alice.proton.black',
-                    'account.protonvpn-com.alice.proton.black',
-                ],
-            });
-        });
-
-        it('should detect protonvpn scientist environments', () => {
-            mockWindow.location.hostname = 'protonvpn-com.bob.proton.black';
-            const storage = createCrossDomainStorage();
-            const domainInfo = storage.getDomainInfo();
-
-            expect(domainInfo).toEqual({
-                rootDomain: 'proton.black',
-                subdomains: [
-                    'bob.proton.black',
-                    'account.bob.proton.black',
-                    'lumo.bob.proton.black',
-                    'protonvpn-com.bob.proton.black',
-                    'account.protonvpn-com.bob.proton.black',
-                ],
-            });
-        });
     });
 
-    describe('Analytics ID Management', () => {
-        it('should set and get analytics ID', () => {
-            const testId = 'test-analytics-id-123';
+    describe('Telemetry ID Management', () => {
+        it('should set and get telemetry ID', () => {
+            const testId = 'test-telemetry-id-123';
             const success = storage.setTelemetryId(testId);
 
             expect(success).toBe(true);
@@ -225,18 +219,20 @@ describe('CrossDomainStorage', () => {
             expect(retrieved).toBe(testId);
         });
 
-        it('should return null for non-existent analytics ID', () => {
+        it('should return null for non-existent telemetry ID', () => {
             const retrieved = storage.getTelemetryId();
             expect(retrieved).toBeNull();
         });
 
-        it('should handle expired analytics ID', async () => {
+        it('should handle expired telemetry ID', async () => {
             vi.useFakeTimers();
-            const testId = 'test-analytics-id-456';
-            const shortStorage = createCrossDomainStorage({
-                maxAge: 1,
-                debug: true,
-            });
+            const testId = 'test-telemetry-id-456';
+            const shortStorage = createCrossDomainStorage(
+                {
+                    maxAge: 1,
+                },
+                true,
+            );
 
             let success = shortStorage.setTelemetryId(testId);
             expect(success).toBe(true);
@@ -254,8 +250,8 @@ describe('CrossDomainStorage', () => {
     });
 
     describe('LocalStorage Transfer', () => {
-        it('should transfer analytics ID to localStorage', () => {
-            const testId = 'test-analytics-id-123';
+        it('should transfer telemetry ID to localStorage', () => {
+            const testId = 'test-telemetry-id-123';
             storage.setTelemetryId(testId);
 
             const success = storage.transferToLocalStorage();
@@ -268,8 +264,8 @@ describe('CrossDomainStorage', () => {
         });
 
         it('should transfer with custom storage key', () => {
-            const testId = 'test-analytics-id-123';
-            const customKey = 'customAnalyticsId';
+            const testId = 'test-telemetry-id-123';
+            const customKey = 'customTelemetryId';
             storage.setTelemetryId(testId);
 
             const success = storage.transferToLocalStorage(customKey);
@@ -281,7 +277,7 @@ describe('CrossDomainStorage', () => {
             );
         });
 
-        it('should return false when no analytics ID exists', () => {
+        it('should return false when no telemetry ID exists', () => {
             const success = storage.transferToLocalStorage();
             expect(success).toBe(false);
         });
@@ -289,7 +285,7 @@ describe('CrossDomainStorage', () => {
 
     describe('Cookie Cleanup', () => {
         it('should clean up cookie', () => {
-            const testId = 'test-analytics-id-123';
+            const testId = 'test-telemetry-id-123';
             storage.setTelemetryId(testId);
 
             // Verify cookie exists before cleanup
