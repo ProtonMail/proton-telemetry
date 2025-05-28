@@ -31,7 +31,7 @@ describe('CrossDomainStorage', () => {
     });
 
     describe('Domain detection', () => {
-        it('should detect proton.me domain', () => {
+        it('detects proton.me domain', () => {
             setupCrossDomainTest('proton.me');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
@@ -41,7 +41,7 @@ describe('CrossDomainStorage', () => {
             });
         });
 
-        it('should detect any proton.me subdomain', () => {
+        it('detects any proton.me subdomain', () => {
             setupCrossDomainTest('any.subdomain.proton.me');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
@@ -51,7 +51,7 @@ describe('CrossDomainStorage', () => {
             });
         });
 
-        it('should detect protonvpn.com domain', () => {
+        it('detects protonvpn.com domain', () => {
             setupCrossDomainTest('protonvpn.com');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
@@ -61,7 +61,7 @@ describe('CrossDomainStorage', () => {
             });
         });
 
-        it('should detect any protonvpn.com subdomain', () => {
+        it('detects any protonvpn.com subdomain', () => {
             setupCrossDomainTest('any.subdomain.protonvpn.com');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
@@ -71,7 +71,7 @@ describe('CrossDomainStorage', () => {
             });
         });
 
-        it('should detect proton.black scientist environment', () => {
+        it('detects proton.black scientist environment', () => {
             setupCrossDomainTest('scientist123.proton.black');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
@@ -81,7 +81,7 @@ describe('CrossDomainStorage', () => {
             });
         });
 
-        it('should detect any proton.black subdomain', () => {
+        it('detects any proton.black subdomain', () => {
             setupCrossDomainTest('any.subdomain.scientist123.proton.black');
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
@@ -91,7 +91,7 @@ describe('CrossDomainStorage', () => {
             });
         });
 
-        it('should return null for unsupported domains', () => {
+        it('returns null for unsupported domains', () => {
             mockWindow.location.hostname = 'example.com';
             const storage = createCrossDomainStorage();
             const domainInfo = storage.getDomainInfo();
@@ -101,7 +101,7 @@ describe('CrossDomainStorage', () => {
     });
 
     describe('Telemetry ID management', () => {
-        it('should set and get telemetry ID', () => {
+        it('sets and gets telemetry ID', () => {
             const testId = 'test-telemetry-id-123';
             const success = storage.setTelemetryId(testId);
 
@@ -111,12 +111,12 @@ describe('CrossDomainStorage', () => {
             expect(retrieved).toBe(testId);
         });
 
-        it('should return null for non-existent telemetry ID', () => {
+        it('returns null for non-existent telemetry ID', () => {
             const retrieved = storage.getTelemetryId();
             expect(retrieved).toBeNull();
         });
 
-        it('should handle expired telemetry ID', async () => {
+        it('handles expired telemetry ID', async () => {
             vi.useFakeTimers();
             const testId = 'test-telemetry-id-456';
             const shortStorage = createCrossDomainStorage(
@@ -142,7 +142,7 @@ describe('CrossDomainStorage', () => {
     });
 
     describe('LocalStorage transfer', () => {
-        it('should transfer telemetry ID to localStorage', () => {
+        it('transfers telemetry ID to localStorage', () => {
             const testId = 'test-telemetry-id-123';
             storage.setTelemetryId(testId);
 
@@ -155,7 +155,7 @@ describe('CrossDomainStorage', () => {
             );
         });
 
-        it('should transfer with custom storage key', () => {
+        it('transfers with custom storage key', () => {
             const testId = 'test-telemetry-id-123';
             const customKey = 'customTelemetryId';
             storage.setTelemetryId(testId);
@@ -169,14 +169,14 @@ describe('CrossDomainStorage', () => {
             );
         });
 
-        it('should return false when no telemetry ID exists', () => {
+        it('returns false when no telemetry ID exists', () => {
             const success = storage.transferToLocalStorage();
             expect(success).toBe(false);
         });
     });
 
     describe('Cookie cleanup', () => {
-        it('should clean up cookie', () => {
+        it('cleans up cookie', () => {
             const testId = 'test-telemetry-id-123';
             storage.setTelemetryId(testId);
 
@@ -197,14 +197,14 @@ describe('CrossDomainStorage', () => {
     });
 
     describe('Support detection', () => {
-        it('should detect support when on supported domain', () => {
+        it('detects support when on supported domain', () => {
             mockWindow.location.hostname = 'proton.me';
             const storage = createCrossDomainStorage();
 
             expect(storage.isSupported()).toBe(true);
         });
 
-        it('should not support when on unsupported domain', () => {
+        it('does not support when on unsupported domain', () => {
             mockWindow.location.hostname = 'example.com';
             const storage = createCrossDomainStorage();
 
@@ -213,7 +213,7 @@ describe('CrossDomainStorage', () => {
     });
 
     describe('Error handling', () => {
-        it('should not crash when document is unavailable', () => {
+        it('does not crash when document is unavailable', () => {
             const originalDocument = global.document;
             // @ts-expect-error - Intentionally deleting global.document for testing
             delete global.document;
@@ -229,7 +229,7 @@ describe('CrossDomainStorage', () => {
             global.document = originalDocument;
         });
 
-        it('should not crash when localStorage is unavailable', () => {
+        it('does not crash when localStorage is unavailable', () => {
             const originalLocalStorage = global.localStorage;
             // @ts-expect-error - Intentionally deleting global.localStorage for testing
             delete global.localStorage;
@@ -252,14 +252,14 @@ describe('handleCrossDomainTelemetryId', () => {
         mockLocalStorage = mocks.mockLocalStorage;
     });
 
-    it('should return current aId when provided', () => {
+    it('returns current aId when provided', () => {
         const currentId = 'current-id-123';
         const result = handleCrossDomainTelemetryId(currentId);
 
         expect(result).toBe(currentId);
     });
 
-    it('should retrieve aId from cross-domain cookie when no current aId', () => {
+    it('retrieves aId from cross-domain cookie when no current aId', () => {
         // Set up a cookie first
         const storage = createCrossDomainStorage();
         const testId = 'cross-domain-id-123';
@@ -271,12 +271,12 @@ describe('handleCrossDomainTelemetryId', () => {
         expect(mockLocalStorage.setItem).toHaveBeenCalledWith('aId', testId);
     });
 
-    it('should return null when no aId available', () => {
+    it('returns null when no aId available', () => {
         const result = handleCrossDomainTelemetryId();
         expect(result).toBeNull();
     });
 
-    it('should not crash on errors', () => {
+    it('does not crash on errors', () => {
         const originalDocument = global.document;
         // @ts-expect-error - Intentionally deleting global.document for testing
         delete global.document;
