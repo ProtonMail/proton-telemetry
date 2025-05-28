@@ -1,7 +1,7 @@
 // Cross-domain ID management using cookies for Proton domains
 // Supports any subdomain under proton.me, protonvpn.com, and proton.black
 import type { CrossDomainStorageConfig } from './types';
-import { log } from './utils';
+import { log, logError, logWarn } from './utils';
 
 interface DomainInfo {
     rootDomain: string;
@@ -279,36 +279,68 @@ export const createCrossDomainStorage = (
     };
 };
 
-// Utility function to handle ID across domains
+// 1. Read the cookie
+// 2. If the cookie is present, update the localStorage (cookie takes precedence)
+// 3. If the cookie is not present, use the id from localStorage
+// 4. If the localStorage is not present, generate a new aId
+// 5. Set the cookie for the next hop
+// 6. Return the final aId
 export const handleCrossDomainTelemetryId = (
-    currentAId?: string,
+    currentAIdFromLocalStorage?: string,
     config?: CrossDomainStorageConfig,
     debug = false,
 ): string | null => {
+    // TODO: move to constants.ts after the other MR handling constants is merged
+    const LOCAL_STORAGE_KEY = 'aId';
+
     try {
         const storage = createCrossDomainStorage(config, debug);
 
         if (!storage.isSupported()) {
-            return currentAId || null;
+            logWarn(debug, 'Cross-domain storage not supported.');
+            return currentAIdFromLocalStorage || null;
         }
 
-        // If we have a current aId, set it in the cookie for cross-domain access
-        if (currentAId) {
-            storage.setTelemetryId(currentAId);
-            return currentAId;
+        const aIdFromIncomingCookie = storage.getTelemetryId();
+        let finalAId: string | null = null;
+
+        if (aIdFromIncomingCookie) {
+            log(debug, `Cookie aId: ${aIdFromIncomingCookie}`);
+            finalAId = aIdFromIncomingCookie;
+
+            if (currentAIdFromLocalStorage !== aIdFromIncomingCookie) {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, finalAId);
+                    log(debug, `Updated localStorage with cookie: ${finalAId}`);
+                } else {
+                    logWarn(
+                        debug,
+                        `localStorage not available, cannot update with cookie: ${finalAId}`,
+                    );
+                }
+            }
+            // Whether localStorage was updated or matched, the incoming cookie was processed and can be cleaned up
+            storage.cleanupCookie();
+            log(debug, `Cleaned processed incoming cookie.`);
+        } else if (currentAIdFromLocalStorage) {
+            log(debug, `Using local aId: ${currentAIdFromLocalStorage}`);
+            finalAId = currentAIdFromLocalStorage;
+            // No incoming cookie to clean here.
         }
 
-        // Try to get aId from cross-domain cookie
-        const crossDomainAId = storage.getTelemetryId();
-        if (crossDomainAId) {
-            // Transfer to localStorage and cleanup cookie
-            storage.transferToLocalStorage();
-            return crossDomainAId;
+        if (finalAId) {
+            log(debug, `Refreshing cookie for next hop: ${finalAId}`);
+            storage.setTelemetryId(finalAId);
+        } else {
+            logError(
+                debug,
+                'No authoritative aId established (local or cookie); not setting cookie for next hop.',
+            );
         }
 
-        return null;
-    } catch {
-        // Fail silently and return current aId or null
-        return currentAId || null;
+        return finalAId;
+    } catch (error) {
+        logError(debug, 'Error in handleCrossDomainTelemetryId:', error);
+        return currentAIdFromLocalStorage || null;
     }
 };
