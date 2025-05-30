@@ -13,6 +13,10 @@ import {
     fetchWithHeaders,
     generateMessageId,
     getFormattedUTCTimezone,
+    safeDocument,
+    safeWindow,
+    safeNavigator,
+    safePerformance,
 } from './utils';
 import { createSendData } from './sendData';
 import { createConfig } from './config/utils';
@@ -48,16 +52,43 @@ export const createTelemetry = (
         retryCount: 0,
     };
 
-    function shouldSend(): boolean {
-        const dnt = navigator.doNotTrack || window.doNotTrack;
-        const gpc = navigator.globalPrivacyControl;
-        const shouldSend = !(dnt === '1' || dnt === 'yes' || gpc === true);
-
-        if (!shouldSend && localStorage.getItem('aId')) {
-            localStorage.removeItem('aId');
+    function isLocalStorageAvailable(): boolean {
+        try {
+            const testKey = '__proton_telemetry_test__';
+            localStorage.setItem(testKey, testKey);
+            localStorage.removeItem(testKey);
+            return true;
+        } catch (e) {
+            // TODO: replace with log helper once logging utils are added
+            console.error('Error checking localStorage availability', e);
+            return false;
         }
+    }
 
-        return shouldSend;
+    function shouldSend(): boolean {
+        const dnt = safeNavigator.doNotTrack || safeWindow.doNotTrack;
+        const gpc = safeNavigator.globalPrivacyControl;
+        const baseShouldSend = !(dnt === '1' || dnt === 'yes' || gpc === true);
+
+        if (!baseShouldSend) {
+            // Safely try to remove aId
+            try {
+                if (
+                    typeof localStorage !== 'undefined' &&
+                    localStorage.getItem('aId')
+                ) {
+                    localStorage.removeItem('aId');
+                }
+            } catch (error) {
+                if (config.debug) {
+                    console.warn(
+                        'Telemetry: Error accessing localStorage to remove aId:',
+                        error,
+                    );
+                }
+            }
+        }
+        return baseShouldSend;
     }
 
     const sendData = createSendData(
@@ -83,7 +114,8 @@ export const createTelemetry = (
         eventData?: Record<string, unknown>,
         customData?: Record<string, unknown>,
     ): TelemetryEvent {
-        const urlParams = new URLSearchParams(window.location.search);
+        const location = safeWindow.location;
+        const urlParams = new URLSearchParams(location.search);
         const queryParams: Record<string, string> = {};
         urlParams.forEach((value, key) => {
             if (key.startsWith('utm_')) {
@@ -110,6 +142,8 @@ export const createTelemetry = (
             .toISOString()
             .replace('Z', `${offsetSign}${offsetHours}:${offsetMinutes}`);
 
+        const screen = safeWindow.screen;
+
         return {
             aId: state.aId,
             messageId: generateMessageId(),
@@ -130,25 +164,25 @@ export const createTelemetry = (
                 },
                 browserLocale: state.userLanguage,
                 page: {
-                    title: document.title,
-                    url: window.location.href,
-                    path: window.location.pathname,
-                    referrer: document.referrer,
-                    queryString: window.location.search,
+                    title: safeDocument.title,
+                    url: location.href,
+                    path: location.pathname,
+                    referrer: safeDocument.referrer,
+                    queryString: location.search,
                     queryParams,
                 },
                 referrer: {
                     type: '',
                     name: '',
-                    url: document.referrer,
+                    url: safeDocument.referrer,
                 },
                 screen: {
-                    width: window.screen.width,
-                    height: window.screen.height,
-                    density: Number(window.devicePixelRatio.toFixed(2)),
+                    width: screen.width,
+                    height: screen.height,
+                    density: Number(safeWindow.devicePixelRatio.toFixed(2)),
                 },
                 timezone: state.userTimezone,
-                userAgent: navigator.userAgent,
+                userAgent: safeNavigator.userAgent,
                 features: customData?.features || Object.create(null),
             },
             properties: {
@@ -160,27 +194,47 @@ export const createTelemetry = (
 
     function getOrCreateAId(): string {
         const storageKey = 'aId';
-        const stored = localStorage.getItem(storageKey);
+        if (isLocalStorageAvailable()) {
+            try {
+                const stored = localStorage.getItem(storageKey);
+                if (stored) {
+                    state.aId = stored;
+                    return stored;
+                }
 
-        if (stored) {
-            state.aId = stored;
-            return stored;
+                const newId = generateMessageId();
+                localStorage.setItem(storageKey, newId);
+                state.aId = newId;
+                void sendData('random_uid_created', {}, undefined, 'low');
+                return newId;
+            } catch (error) {
+                if (config.debug) {
+                    console.warn(
+                        'Telemetry: Error accessing localStorage in getOrCreateAId:',
+                        error,
+                    );
+                }
+                state.aId = generateMessageId();
+                return state.aId;
+            }
+        } else {
+            if (config.debug) {
+                console.warn(
+                    'Telemetry: localStorage is not available. aId will not be persisted.',
+                );
+            }
+            state.aId = generateMessageId();
+            return state.aId;
         }
-
-        const newId = generateMessageId();
-        localStorage.setItem(storageKey, newId);
-        state.aId = newId;
-
-        void sendData('random_uid_created', {}, undefined, 'low');
-
-        return newId;
     }
 
-    if (shouldSend()) {
+    const shouldSendTelemetry = shouldSend();
+
+    if (shouldSendTelemetry) {
         state.aId = getOrCreateAId();
-        state.pageLoadTime = performance.now();
+        state.pageLoadTime = safePerformance.now();
         state.userTimezone = getFormattedUTCTimezone();
-        state.userLanguage = navigator.language || 'en';
+        state.userLanguage = safeNavigator.language;
     }
 
     const eventSender = createEventSender(
@@ -201,7 +255,7 @@ export const createTelemetry = (
         config.debug,
     );
 
-    if (shouldSend()) {
+    if (shouldSendTelemetry) {
         if (config.events.pageView) {
             eventSender.sendPageView();
         }
@@ -256,15 +310,13 @@ export const createTelemetry = (
 
                 const body = JSON.stringify(batchedEvents);
 
-                if (navigator.sendBeacon) {
+                const sendBeacon = safeNavigator.sendBeacon;
+                if (sendBeacon) {
                     try {
                         const blob = new Blob([body], {
                             type: 'application/json',
                         });
-                        const success = navigator.sendBeacon(
-                            config.endpoint,
-                            blob,
-                        );
+                        const success = sendBeacon(config.endpoint, blob);
                         if (success) {
                             state.eventQueue = [];
                             if (config.debug) {
