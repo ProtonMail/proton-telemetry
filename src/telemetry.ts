@@ -65,8 +65,7 @@ export const createTelemetry = (
             localStorage.removeItem(testKey);
             return true;
         } catch (e) {
-            // TODO: replace with log helper once logging utils are added
-            console.error('Error checking localStorage availability', e);
+            logWarn(true, 'Error checking localStorage availability', e);
             return false;
         }
     }
