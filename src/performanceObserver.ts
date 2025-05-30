@@ -1,5 +1,5 @@
 import type { EventType, EventData, PerformanceEventData } from './types';
-import { log } from './utils';
+import { logWarn } from './utils';
 
 export function createPerformanceObserver(
     sendData: (eventType: EventType, eventData: EventData) => Promise<boolean>,
@@ -40,12 +40,7 @@ export function createPerformanceObserver(
 
                 observer.observe({ entryTypes: ['navigation'] });
             } else {
-                if (debug) {
-                    log(
-                        debug,
-                        'Performance Observer not supported in this environment.',
-                    );
-                }
+                logWarn(debug, 'PerformanceObserver API is not supported');
             }
         },
     };

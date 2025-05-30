@@ -18,6 +18,7 @@ import {
     safeNavigator,
     safePerformance,
     log,
+    logWarn,
 } from './utils';
 import { createSendData } from './sendData';
 import { createConfig } from './config/utils';
@@ -263,18 +264,18 @@ export const createTelemetry = (
                 void sendData('random_uid_created', {}, undefined, 'low');
                 return newId;
             } catch (error) {
-                log(
+                logWarn(
                     config.debug,
-                    'Telemetry: Error accessing localStorage in getOrCreateAId:',
+                    'Error accessing localStorage in getOrCreateAId:',
                     error,
                 );
                 state.aId = generateMessageId();
                 return state.aId;
             }
         } else {
-            log(
+            logWarn(
                 config.debug,
-                'Telemetry: localStorage is not available. aId will not be persisted.',
+                'localStorage is not available. aId will not be persisted.',
             );
             state.aId = generateMessageId();
             return state.aId;
