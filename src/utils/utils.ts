@@ -1,7 +1,26 @@
-import type { PageType } from './types';
+import type { PageType } from '../types';
+import { safeDocument } from './browserAPI';
 
 export const generateMessageId = (): string => {
-    return crypto.randomUUID();
+    if (
+        typeof crypto !== 'undefined' &&
+        typeof crypto.randomUUID === 'function'
+    ) {
+        return crypto.randomUUID();
+    }
+    // Fallback for environments where crypto.randomUUID is not available
+    // Generates a UUID v4-like string. In the string 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx',
+    // - x is replaced with a random number 0-15
+    // - y is replaced with a random number 8-11
+    // - the result is converted to a hexadecimal string
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        // random number 0-15, truncated to integer
+        const r = (Math.random() * 16) | 0;
+        // replace 'x' in the string above with a random number 0-15 and 'y' with random number 8-11
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        // convert to hex string
+        return v.toString(16);
+    });
 };
 
 export const fetchWithHeaders = async (
@@ -10,9 +29,8 @@ export const fetchWithHeaders = async (
     uid?: string,
     init?: RequestInit,
 ): Promise<Response> => {
-    const prevPage: HeadersInit = document?.referrer
-        ? { 'X-PM-Referer': document.referrer }
-        : {};
+    const referrer = safeDocument.referrer;
+    const prevPage: HeadersInit = referrer ? { 'X-PM-Referer': referrer } : {};
     const uidHeader: HeadersInit = uid ? { 'x-pm-uid': uid } : {};
     const existingHeaders =
         init?.headers instanceof Headers
@@ -93,16 +111,18 @@ export const getFormattedUTCTimezone = (): string => {
 export const getABTestFeatures = (): Record<string, string> => {
     const features: Record<string, string> = {};
 
-    const metaTags = document.querySelectorAll('meta[name^="ab-test:"]');
-    metaTags.forEach((tag) => {
-        const name = tag.getAttribute('name');
-        const content = tag.getAttribute('content');
+    const metaTags = safeDocument.querySelectorAll('meta[name^="ab-test:"]');
+    if (metaTags && typeof metaTags.forEach === 'function') {
+        metaTags.forEach((tag) => {
+            const name = tag.getAttribute('name');
+            const content = tag.getAttribute('content');
 
-        if (name && content) {
-            const testName = name.replace('ab-test:', '');
-            features[testName] = content;
-        }
-    });
+            if (name && content) {
+                const testName = name.replace('ab-test:', '');
+                features[testName] = content;
+            }
+        });
+    }
 
     return features;
 };

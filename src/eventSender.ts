@@ -6,7 +6,14 @@ import type {
     ModalEventData,
     ExitEventData,
 } from './types';
-import { getPageType, getABTestFeatures, getElementText } from './utils';
+import {
+    getPageType,
+    getABTestFeatures,
+    getElementText,
+    safeDocument,
+    safeWindow,
+    safePerformance,
+} from './utils';
 
 export const createEventSender = (
     sendData: (
@@ -26,24 +33,26 @@ export const createEventSender = (
     shouldSend: () => boolean,
 ) => {
     const state = {
-        pageStartTime: performance.now(),
-        activeStartTime: document.hidden ? null : performance.now(),
+        pageStartTime: safePerformance.now(),
+        activeStartTime: safeDocument.hidden ? null : safePerformance.now(),
         totalActiveTime: 0,
-        isPageVisible: !document.hidden,
+        isPageVisible: !safeDocument.hidden,
     };
 
     function resetTime() {
-        state.pageStartTime = performance.now();
-        state.activeStartTime = document.hidden ? null : state.pageStartTime;
+        state.pageStartTime = safePerformance.now();
+        state.activeStartTime = safeDocument.hidden
+            ? null
+            : state.pageStartTime;
         state.totalActiveTime = 0;
-        state.isPageVisible = !document.hidden;
+        state.isPageVisible = !safeDocument.hidden;
     }
 
     function handleVisibilityChange() {
-        const now = performance.now();
-        state.isPageVisible = !document.hidden;
+        const now = safePerformance.now();
+        state.isPageVisible = !safeDocument.hidden;
 
-        if (document.hidden) {
+        if (safeDocument.hidden) {
             if (state.activeStartTime !== null) {
                 state.totalActiveTime += now - state.activeStartTime;
                 state.activeStartTime = null;
@@ -56,7 +65,7 @@ export const createEventSender = (
     function handlePageExit() {
         if (!shouldSend()) return;
 
-        const now = performance.now();
+        const now = safePerformance.now();
         const timeOnPage = now - state.pageStartTime;
 
         if (state.isPageVisible && state.activeStartTime !== null) {
@@ -69,13 +78,15 @@ export const createEventSender = (
         } as ExitEventData);
     }
 
-    function sendClick(event: MouseEvent) {
+    function sendClick(event: Event) {
         const target = event.target as HTMLElement;
         if (!target) return;
 
-        // Ensure we have valid coordinates (some synthetic events don't have them)
-        const xPos = typeof event.pageX === 'number' ? event.pageX : 0;
-        const yPos = typeof event.pageY === 'number' ? event.pageY : 0;
+        const mouseEvent = event as MouseEvent;
+        const xPos =
+            typeof mouseEvent.pageX === 'number' ? mouseEvent.pageX : 0;
+        const yPos =
+            typeof mouseEvent.pageY === 'number' ? mouseEvent.pageY : 0;
 
         const clickData: ClickEventData = {
             elementType: target.tagName.toLowerCase(),
@@ -89,18 +100,20 @@ export const createEventSender = (
         void sendData('click', clickData);
     }
 
-    function sendFormSubmit(event: SubmitEvent) {
+    function sendFormSubmit(event: Event) {
         const form = event.target as HTMLFormElement;
         if (!form) return;
 
         void sendData('form_submit');
     }
 
-    if (document.addEventListener) {
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('beforeunload', handlePageExit);
-        window.addEventListener('pagehide', handlePageExit);
-    }
+    const hasDocumentListeners = safeDocument.addEventListener(
+        'visibilitychange',
+        handleVisibilityChange,
+    );
+    const hasWindowListeners =
+        safeWindow.addEventListener('beforeunload', handlePageExit) &&
+        safeWindow.addEventListener('pagehide', handlePageExit);
 
     resetTime();
 
@@ -114,11 +127,13 @@ export const createEventSender = (
 
             resetTime();
 
+            const location = safeWindow.location;
+
             const pageViewData: PageViewEventData = {
-                pageTitle: document.title,
-                pageType: getPageType(window.location.pathname),
-                path: window.location.pathname,
-                referrer: document.referrer,
+                pageTitle: safeDocument.title,
+                pageType: getPageType(location.pathname),
+                path: location.pathname,
+                referrer: safeDocument.referrer,
             };
 
             void sendData('page_view', pageViewData, {
@@ -127,11 +142,11 @@ export const createEventSender = (
         },
         initClickSending: () => {
             if (!config.click) return;
-            document.addEventListener('click', sendClick);
+            safeDocument.addEventListener('click', sendClick);
         },
         initFormSending: () => {
             if (!config.form) return;
-            document.addEventListener('submit', sendFormSubmit);
+            safeDocument.addEventListener('submit', sendFormSubmit);
         },
         sendModalView: (
             modalId: string,
@@ -141,22 +156,26 @@ export const createEventSender = (
             const modalData: ModalEventData = {
                 modalId,
                 modalType,
-                timeToShow: Math.round(performance.now() - pageLoadTime),
+                timeToShow: Math.round(safePerformance.now() - pageLoadTime),
             };
             void sendData('modal_view', modalData);
         },
         destroy: () => {
-            document.removeEventListener(
-                'visibilitychange',
-                handleVisibilityChange,
-            );
-            window.removeEventListener('beforeunload', handlePageExit);
-            window.removeEventListener('pagehide', handlePageExit);
+            if (hasDocumentListeners) {
+                safeDocument.removeEventListener(
+                    'visibilitychange',
+                    handleVisibilityChange,
+                );
+            }
+            if (hasWindowListeners) {
+                safeWindow.removeEventListener('beforeunload', handlePageExit);
+                safeWindow.removeEventListener('pagehide', handlePageExit);
+            }
             if (config.click) {
-                document.removeEventListener('click', sendClick);
+                safeDocument.removeEventListener('click', sendClick);
             }
             if (config.form) {
-                document.removeEventListener('submit', sendFormSubmit);
+                safeDocument.removeEventListener('submit', sendFormSubmit);
             }
         },
     };
