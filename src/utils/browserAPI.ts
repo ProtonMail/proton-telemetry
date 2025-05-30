@@ -1,10 +1,11 @@
+import { logError } from './utils';
+
 export const safeDocument = {
     get title(): string {
         try {
             return typeof document !== 'undefined' ? document.title || '' : '';
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting document title', e);
+            logError(true, 'Error getting document title', e);
             return '';
         }
     },
@@ -15,8 +16,7 @@ export const safeDocument = {
                 ? document.referrer || ''
                 : '';
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting document referrer', e);
+            logError(true, 'Error getting document referrer', e);
             return '';
         }
     },
@@ -27,8 +27,7 @@ export const safeDocument = {
                 ? document.hidden || false
                 : false;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting document hidden', e);
+            logError(true, 'Error getting document hidden', e);
             return false;
         }
     },
@@ -39,8 +38,7 @@ export const safeDocument = {
                 ? document.querySelectorAll(selector)
                 : [];
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting document querySelectorAll', e);
+            logError(true, 'Error getting document querySelectorAll', e);
             return [];
         }
     },
@@ -57,8 +55,7 @@ export const safeDocument = {
             }
             return false;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error adding document event listener', e);
+            logError(true, 'Error adding document event listener', e);
             return false;
         }
     },
@@ -78,8 +75,7 @@ export const safeDocument = {
             }
             return false;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error removing document event listener', e);
+            logError(true, 'Error removing document event listener', e);
             return false;
         }
     },
@@ -96,8 +92,7 @@ export const safeWindow = {
                 };
             }
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting window location', e);
+            logError(true, 'Error getting window location', e);
         }
         // Fallback
         return { href: '', pathname: '', search: '' };
@@ -112,8 +107,7 @@ export const safeWindow = {
                 };
             }
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting window screen', e);
+            logError(true, 'Error getting window screen', e);
         }
         // Fallback
         return { width: 0, height: 0 };
@@ -125,8 +119,7 @@ export const safeWindow = {
                 ? window.devicePixelRatio || 1
                 : 1;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting window devicePixelRatio', e);
+            logError(true, 'Error getting window devicePixelRatio', e);
             // Fallback
             return 1;
         }
@@ -138,8 +131,7 @@ export const safeWindow = {
                 ? window.doNotTrack || null
                 : null;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting window doNotTrack', e);
+            logError(true, 'Error getting window doNotTrack', e);
             return null;
         }
     },
@@ -156,8 +148,7 @@ export const safeWindow = {
             }
             return false;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error adding window event listener', e);
+            logError(true, 'Error adding window event listener', e);
             return false;
         }
     },
@@ -174,8 +165,7 @@ export const safeWindow = {
             }
             return false;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error removing window event listener', e);
+            logError(true, 'Error removing window event listener', e);
             return false;
         }
     },
@@ -188,8 +178,7 @@ export const safeNavigator = {
                 ? navigator.doNotTrack || null
                 : null;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting navigator doNotTrack', e);
+            logError(true, 'Error getting navigator doNotTrack', e);
             return null;
         }
     },
@@ -200,8 +189,7 @@ export const safeNavigator = {
                 ? navigator.globalPrivacyControl
                 : undefined;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting navigator globalPrivacyControl', e);
+            logError(true, 'Error getting navigator globalPrivacyControl', e);
             return undefined;
         }
     },
@@ -212,8 +200,7 @@ export const safeNavigator = {
                 ? navigator.userAgent || ''
                 : '';
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting navigator userAgent', e);
+            logError(true, 'Error getting navigator userAgent', e);
             return '';
         }
     },
@@ -224,8 +211,7 @@ export const safeNavigator = {
                 ? navigator.language
                 : 'en';
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting navigator language', e);
+            logError(true, 'Error getting navigator language', e);
             return 'en';
         }
     },
@@ -238,8 +224,7 @@ export const safeNavigator = {
                 ? navigator.sendBeacon?.bind(navigator)
                 : undefined;
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting navigator sendBeacon', e);
+            logError(true, 'Error getting navigator sendBeacon', e);
             return undefined;
         }
     },
@@ -252,8 +237,7 @@ export const safePerformance = {
                 ? performance.now()
                 : Date.now();
         } catch (e) {
-            // TODO 5991: replace with log helper once logging utils are added
-            console.error('Error getting performance now', e);
+            logError(true, 'Error getting performance now', e);
             return Date.now();
         }
     },
