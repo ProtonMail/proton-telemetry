@@ -1,6 +1,6 @@
 {
-    "name": "@protontech/telemetry",
-    "version": "0.1.15",
+    "name": "@proton/telemetry",
+    "version": "0.1.16",
     "description": "Frontend telemetry library for Proton websites",
     "main": "./dist/index.js",
     "module": "./dist/index.js",
@@ -38,7 +38,7 @@
         "push:tags": "git push --follow-tags"
     },
     "publishConfig": {
-        "access": "public"
+        "registry": "https://nexus.protontech.ch/repository/web-npm/"
     },
     "devDependencies": {
         "@types/node": "^22.13.10",
