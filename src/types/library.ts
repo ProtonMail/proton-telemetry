@@ -6,6 +6,7 @@ export interface TelemetryConfig {
     debug?: boolean;
     dryRun?: boolean;
     uidHeader?: string;
+    crossDomain?: CrossDomainStorageConfig;
     events?: {
         pageView?: boolean;
         click?: boolean;
@@ -32,4 +33,9 @@ export type EventPriority = 'high' | 'low';
 export interface QueuedEvent {
     event: TelemetryEvent;
     priority: EventPriority;
+}
+
+export interface CrossDomainStorageConfig {
+    cookieName?: string;
+    maxAge?: number; // in seconds
 }

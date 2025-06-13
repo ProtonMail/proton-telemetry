@@ -17,9 +17,15 @@ import {
     safeWindow,
     safeNavigator,
     safePerformance,
+    log,
+    logWarn,
 } from './utils';
 import { createSendData } from './sendData';
 import { createConfig } from './config/utils';
+import {
+    handleCrossDomainTelemetryId,
+    createCrossDomainStorage,
+} from './crossDomainStorage';
 
 export type CreateTelemetryReturn = {
     sendPageView: () => void;
@@ -59,8 +65,7 @@ export const createTelemetry = (
             localStorage.removeItem(testKey);
             return true;
         } catch (e) {
-            // TODO: replace with log helper once logging utils are added
-            console.error('Error checking localStorage availability', e);
+            logWarn(true, 'Error checking localStorage availability', e);
             return false;
         }
     }
@@ -71,21 +76,28 @@ export const createTelemetry = (
         const baseShouldSend = !(dnt === '1' || dnt === 'yes' || gpc === true);
 
         if (!baseShouldSend) {
-            // Safely try to remove aId
+            // Safely try to remove aId from localStorage and cross-domain storage
             try {
+                // Clean up localStorage
                 if (
                     typeof localStorage !== 'undefined' &&
                     localStorage.getItem('aId')
                 ) {
                     localStorage.removeItem('aId');
                 }
+
+                // Clean up cross-domain storage
+                const crossDomainStorage = createCrossDomainStorage(
+                    config.crossDomain,
+                    config.debug,
+                );
+                crossDomainStorage.cleanupCookie();
             } catch (error) {
-                if (config.debug) {
-                    console.warn(
-                        'Telemetry: Error accessing localStorage to remove aId:',
-                        error,
-                    );
-                }
+                log(
+                    config.debug,
+                    'Error cleaning up cross-domain cookie:',
+                    error,
+                );
             }
         }
         return baseShouldSend;
@@ -193,36 +205,77 @@ export const createTelemetry = (
     }
 
     function getOrCreateAId(): string {
+        // TODO: put in constants file
         const storageKey = 'aId';
+
         if (isLocalStorageAvailable()) {
             try {
-                const stored = localStorage.getItem(storageKey);
+                // First, try to handle cross-domain analytics ID
+                let stored = localStorage.getItem(storageKey);
+                const crossDomainAId = handleCrossDomainTelemetryId(
+                    stored || undefined,
+                    config.crossDomain,
+                    config.debug,
+                );
+
+                if (crossDomainAId && crossDomainAId !== stored) {
+                    // Update localStorage with cross-domain aId
+                    localStorage.setItem(storageKey, crossDomainAId);
+                    stored = crossDomainAId;
+                }
+
                 if (stored) {
                     state.aId = stored;
+
+                    // Set in cross-domain cookie for future cross-domain access
+                    try {
+                        const crossDomainStorage = createCrossDomainStorage(
+                            config.crossDomain,
+                            config.debug,
+                        );
+                        if (crossDomainStorage.isSupported()) {
+                            crossDomainStorage.setTelemetryId(stored);
+                        }
+                    } catch (e) {
+                        log(config.debug, 'Error setting telemetry ID:', e);
+                    }
+
                     return stored;
                 }
 
                 const newId = generateMessageId();
                 localStorage.setItem(storageKey, newId);
                 state.aId = newId;
+
+                // Set in cross-domain cookie for future cross-domain access
+                try {
+                    const crossDomainStorage = createCrossDomainStorage(
+                        config.crossDomain,
+                        config.debug,
+                    );
+                    if (crossDomainStorage.isSupported()) {
+                        crossDomainStorage.setTelemetryId(newId);
+                    }
+                } catch (e) {
+                    log(config.debug, 'Error setting telemetry ID:', e);
+                }
+
                 void sendData('random_uid_created', {}, undefined, 'low');
                 return newId;
             } catch (error) {
-                if (config.debug) {
-                    console.warn(
-                        'Telemetry: Error accessing localStorage in getOrCreateAId:',
-                        error,
-                    );
-                }
+                logWarn(
+                    config.debug,
+                    'Error accessing localStorage in getOrCreateAId:',
+                    error,
+                );
                 state.aId = generateMessageId();
                 return state.aId;
             }
         } else {
-            if (config.debug) {
-                console.warn(
-                    'Telemetry: localStorage is not available. aId will not be persisted.',
-                );
-            }
+            logWarn(
+                config.debug,
+                'localStorage is not available. aId will not be persisted.',
+            );
             state.aId = generateMessageId();
             return state.aId;
         }
@@ -269,6 +322,86 @@ export const createTelemetry = (
         }
     }
 
+    const destroy = async (): Promise<void> => {
+        if (state.batchTimeout) {
+            clearTimeout(state.batchTimeout);
+        }
+
+        if (state.eventQueue.length > 0) {
+            const batchedEvents: BatchedTelemetryEvents = {
+                events: state.eventQueue.map(
+                    (queuedEvent) => queuedEvent.event,
+                ),
+            };
+
+            const body = JSON.stringify(batchedEvents);
+
+            if (navigator.sendBeacon) {
+                try {
+                    const blob = new Blob([body], {
+                        type: 'application/json',
+                    });
+                    const success = navigator.sendBeacon(config.endpoint, blob);
+                    if (success) {
+                        state.eventQueue = [];
+                        log(
+                            config.debug,
+                            'Successfully sent batch via sendBeacon.',
+                        );
+                    } else {
+                        // fall back to fetchWithHeaders
+                        log(
+                            config.debug,
+                            'navigator.sendBeacon failed, attempting fallback to fetch.',
+                        );
+                    }
+                } catch (error) {
+                    if (config.debug) {
+                        log(
+                            config.debug,
+                            'Error using navigator.sendBeacon, attempting fallback to fetch:',
+                            error,
+                        );
+                    }
+                }
+            }
+
+            // Fallback or if sendBeacon is not available / failed and queue isn't empty
+            if (state.eventQueue.length > 0) {
+                try {
+                    await fetchWithHeaders(
+                        config.endpoint,
+                        config.appVersion,
+                        config.uidHeader,
+                        {
+                            method: 'POST',
+                            body,
+                            keepalive: true,
+                        },
+                    );
+                    state.eventQueue = [];
+                } catch (error) {
+                    if (config.debug) {
+                        log(
+                            config.debug,
+                            'Telemetry error (fetch fallback):',
+                            error,
+                        );
+                    }
+                }
+            }
+        }
+
+        eventSender.destroy();
+
+        // Clean up cross-domain cookie
+        const crossDomainStorage = createCrossDomainStorage(
+            config.crossDomain,
+            config.debug,
+        );
+        crossDomainStorage.cleanupCookie();
+    };
+
     return {
         sendPageView: () => {
             if (!shouldSend()) return;
@@ -296,79 +429,7 @@ export const createTelemetry = (
             if (!shouldSend()) return;
             void sendData(eventType as CustomEventType, {}, customData);
         },
-        destroy: async () => {
-            if (state.batchTimeout) {
-                clearTimeout(state.batchTimeout);
-            }
-
-            if (state.eventQueue.length > 0) {
-                const batchedEvents: BatchedTelemetryEvents = {
-                    events: state.eventQueue.map(
-                        (queuedEvent) => queuedEvent.event,
-                    ),
-                };
-
-                const body = JSON.stringify(batchedEvents);
-
-                const sendBeacon = safeNavigator.sendBeacon;
-                if (sendBeacon) {
-                    try {
-                        const blob = new Blob([body], {
-                            type: 'application/json',
-                        });
-                        const success = sendBeacon(config.endpoint, blob);
-                        if (success) {
-                            state.eventQueue = [];
-                            if (config.debug) {
-                                console.log(
-                                    '[Telemetry] Successfully sent batch via sendBeacon.',
-                                );
-                            }
-                        } else {
-                            // fall back to fetchWithHeaders
-                            if (config.debug) {
-                                console.warn(
-                                    '[Telemetry] navigator.sendBeacon failed, attempting fallback to fetch.',
-                                );
-                            }
-                        }
-                    } catch (error) {
-                        if (config.debug) {
-                            console.error(
-                                '[Telemetry] Error using navigator.sendBeacon, attempting fallback to fetch:',
-                                error,
-                            );
-                        }
-                    }
-                }
-
-                // Fallback or if sendBeacon is not available / failed and queue isn't empty
-                if (state.eventQueue.length > 0) {
-                    try {
-                        await fetchWithHeaders(
-                            config.endpoint,
-                            config.appVersion,
-                            config.uidHeader,
-                            {
-                                method: 'POST',
-                                body,
-                                keepalive: true,
-                            },
-                        );
-                        state.eventQueue = [];
-                    } catch (error) {
-                        if (config.debug) {
-                            console.error(
-                                'Telemetry error (fetch fallback):',
-                                error,
-                            );
-                        }
-                    }
-                }
-            }
-
-            eventSender.destroy();
-        },
+        destroy,
     };
 };
 

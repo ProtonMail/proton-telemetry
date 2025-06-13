@@ -1,3 +1,8 @@
+import { setupGlobalMocks } from './helpers/setup';
+
+// Call global setup
+setupGlobalMocks();
+
 // Mock crypto API
 Object.defineProperty(global, 'crypto', {
     value: {

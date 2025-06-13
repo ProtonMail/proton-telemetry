@@ -1,4 +1,5 @@
 import type { EventType, EventData, PerformanceEventData } from './types';
+import { logWarn } from './utils';
 
 export function createPerformanceObserver(
     sendData: (eventType: EventType, eventData: EventData) => Promise<boolean>,
@@ -39,11 +40,7 @@ export function createPerformanceObserver(
 
                 observer.observe({ entryTypes: ['navigation'] });
             } else {
-                if (debug) {
-                    console.warn(
-                        '[Telemetry] PerformanceObserver API is not supported in this browser. Performance metrics will not be collected.',
-                    );
-                }
+                logWarn(debug, 'PerformanceObserver API is not supported');
             }
         },
     };

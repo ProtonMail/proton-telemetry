@@ -1,81 +1,41 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createTelemetry as ProtonTelemetry } from '../telemetry';
 import { BATCH_DELAY, MAX_RETRIES } from '../constants';
+import {
+    createFetchMock,
+    createConsoleMocks,
+    setupBasicTelemetryTest,
+    setupTimers,
+    cleanupMocks,
+} from './helpers';
+import { createBasicTelemetryConfig } from './helpers/fixtures';
 
 // Tests focusing on the retry mechanism triggered by sendData
 describe('ProtonTelemetry - Retry Logic', () => {
     let mockFetch: ReturnType<typeof vi.fn>;
-    let localStorageMock: {
-        getItem: (key: string) => string | null;
-        setItem: (key: string, value: string) => void;
-        removeItem: (key: string) => void;
-    };
-    let mockStorage: Record<string, string | undefined>;
     let consoleSpyLog: ReturnType<typeof vi.spyOn>;
     let consoleSpyError: ReturnType<typeof vi.spyOn>;
+    let cleanupTimers: () => void;
 
     beforeEach(() => {
-        vi.useFakeTimers();
+        cleanupTimers = setupTimers();
+        setupBasicTelemetryTest();
 
-        // Use preset id to prevent random_uid_created event
-        mockStorage = {
-            aId: 'test-uuid',
-        };
-        localStorageMock = {
-            // nosemgrep: gitlab.eslint.detect-object-injection
-            getItem: vi.fn((key: string) => mockStorage[key] ?? null),
-            setItem: vi.fn((key: string, value: string) => {
-                // nosemgrep: gitlab.eslint.detect-object-injection
-                mockStorage[key] = value;
-            }),
-            removeItem: vi.fn(),
-        };
-        vi.stubGlobal('localStorage', localStorageMock);
-
-        mockFetch = vi.fn();
-        vi.stubGlobal('fetch', mockFetch);
-
-        vi.stubGlobal('navigator', {
-            doNotTrack: null,
-            globalPrivacyControl: false,
-            language: 'en-US',
-        });
-
-        vi.stubGlobal('process', {
-            env: {
-                CI_COMMIT_TAG: 'v1.0.0+test',
-            },
-        });
-
-        vi.stubGlobal('performance', {
-            now: () => 0,
-        });
-
-        consoleSpyLog = vi.spyOn(console, 'log');
-        consoleSpyError = vi.spyOn(console, 'error');
+        mockFetch = createFetchMock();
+        const consoleMocks = createConsoleMocks();
+        consoleSpyLog = consoleMocks.consoleSpyLog;
+        consoleSpyError = consoleMocks.consoleSpyError;
     });
 
     afterEach(() => {
-        vi.useRealTimers();
-        vi.restoreAllMocks();
+        cleanupTimers();
+        cleanupMocks();
         consoleSpyLog.mockRestore();
         consoleSpyError.mockRestore();
     });
 
     it('retries on 429/503 with Retry-After header', async () => {
-        const telemetry = ProtonTelemetry({
-            endpoint: 'https://telemetry.test.com',
-            appVersion: 'appVersion',
-            debug: true,
-            events: {
-                pageView: false,
-                click: false,
-                form: false,
-                performance: false,
-                visibility: false,
-                modal: false,
-            },
-        });
+        const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         const retryAfterSeconds = 2;
         const retryAfterMs = retryAfterSeconds * 1000;
@@ -98,7 +58,8 @@ describe('ProtonTelemetry - Retry Logic', () => {
 
         // Check console log for retry message
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs}ms (attempt #1) based on Retry-After header.`,
+            '[Telemetry]',
+            `Server responded with 429. Retrying after ${retryAfterMs}ms (attempt #1) based on Retry-After header.`,
         );
 
         // Should not retry before Retry-After delay and retry right after
@@ -116,19 +77,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
     });
 
     it('drops events after max retries on 429/503 with Retry-After', async () => {
-        const telemetry = ProtonTelemetry({
-            endpoint: 'https://telemetry.test.com',
-            appVersion: 'appVersion',
-            debug: true,
-            events: {
-                pageView: false,
-                click: false,
-                form: false,
-                performance: false,
-                visibility: false,
-                modal: false,
-            },
-        });
+        const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         const retryAfterSeconds = 1;
         const retryAfterMs = retryAfterSeconds * 1000;
@@ -153,7 +102,8 @@ describe('ProtonTelemetry - Retry Logic', () => {
         for (let i = 0; i < MAX_RETRIES; i++) {
             expect(mockFetch).toHaveBeenCalledTimes(expectedCalls);
             expect(consoleSpyLog).toHaveBeenCalledWith(
-                `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs}ms (attempt #${
+                '[Telemetry]',
+                `Server responded with 429. Retrying after ${retryAfterMs}ms (attempt #${
                     i + 1
                 }) based on Retry-After header.`,
             );
@@ -165,7 +115,8 @@ describe('ProtonTelemetry - Retry Logic', () => {
         // The last attempt failed, reaching max retries
         expect(mockFetch).toHaveBeenCalledTimes(MAX_RETRIES + 1);
         expect(consoleSpyError).toHaveBeenCalledWith(
-            `[Telemetry] Max retries (${MAX_RETRIES}) reached after 429 response. Dropping events.`,
+            '[Telemetry]',
+            `Max retries (${MAX_RETRIES}) reached after 429 response. Dropping events.`,
         );
 
         // Verify no more retries happen
@@ -174,19 +125,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
     });
 
     it('resets retry count after successful request following retries', async () => {
-        const telemetry = ProtonTelemetry({
-            endpoint: 'https://telemetry.test.com',
-            appVersion: 'appVersion',
-            debug: true,
-            events: {
-                pageView: false,
-                click: false,
-                form: false,
-                performance: false,
-                visibility: false,
-                modal: false,
-            },
-        });
+        const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         const retryAfterSeconds1 = 1;
         const retryAfterMs1 = retryAfterSeconds1 * 1000;
@@ -227,21 +166,24 @@ describe('ProtonTelemetry - Retry Logic', () => {
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
         expect(mockFetch).toHaveBeenCalledTimes(1);
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs1}ms (attempt #1) based on Retry-After header.`,
+            '[Telemetry]',
+            `Server responded with 429. Retrying after ${retryAfterMs1}ms (attempt #1) based on Retry-After header.`,
         );
 
         // First retry (fails)
         await vi.advanceTimersByTimeAsync(retryAfterMs1);
         expect(mockFetch).toHaveBeenCalledTimes(2);
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs2}ms (attempt #2) based on Retry-After header.`,
+            '[Telemetry]',
+            `Server responded with 429. Retrying after ${retryAfterMs2}ms (attempt #2) based on Retry-After header.`,
         );
 
         // Second retry (succeeds)
         await vi.advanceTimersByTimeAsync(retryAfterMs2);
         expect(mockFetch).toHaveBeenCalledTimes(3);
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            '[Telemetry] Batch sent successfully after retries.',
+            '[Telemetry]',
+            'Batch sent successfully after retries.',
         );
 
         // Send second event to see if retry count was reset
@@ -252,14 +194,16 @@ describe('ProtonTelemetry - Retry Logic', () => {
         expect(mockFetch).toHaveBeenCalledTimes(4);
         // Check that retry count was reset (attempt #1)
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            `[Telemetry] Server responded with 429. Retrying after ${retryAfterMs1}ms (attempt #1) based on Retry-After header.`,
+            '[Telemetry]',
+            `Server responded with 429. Retrying after ${retryAfterMs1}ms (attempt #1) based on Retry-After header.`,
         );
 
         // First retry for event 2 (succeeds)
         await vi.advanceTimersByTimeAsync(retryAfterMs1);
         expect(mockFetch).toHaveBeenCalledTimes(5);
         expect(consoleSpyLog).toHaveBeenCalledWith(
-            '[Telemetry] Batch sent successfully after retries.',
+            '[Telemetry]',
+            'Batch sent successfully after retries.',
         );
 
         // Verify overall calls and last event data
@@ -270,18 +214,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
     });
 
     it('does not duplicate events on retry (429 with Retry-After)', async () => {
-        const telemetry = ProtonTelemetry({
-            endpoint: 'https://telemetry.test.com',
-            appVersion: 'appVersion',
-            events: {
-                pageView: false,
-                click: false,
-                form: false,
-                performance: false,
-                visibility: false,
-                modal: false,
-            },
-        });
+        const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         const retryAfterSeconds = 1;
         const retryAfterMs = retryAfterSeconds * 1000;

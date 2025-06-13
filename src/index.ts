@@ -1,6 +1,16 @@
 export {
     createTelemetry as ProtonTelemetry,
     createCustomEventSender,
-    type CreateTelemetryType as ProtonTelemetryType,
 } from './telemetry';
-export type { TelemetryConfig, TelemetryEvent, EventType } from './types';
+export type {
+    CreateTelemetryReturn,
+    CreateTelemetryType as ProtonTelemetryType,
+} from './telemetry';
+export type {
+    TelemetryConfig,
+    CrossDomainStorageConfig,
+    TelemetryEvent,
+    EventType,
+    CustomEventType,
+    StandardEventType,
+} from './types';
