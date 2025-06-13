@@ -53,7 +53,8 @@ describe('Browser API availability tests', () => {
 
             // Should log warnings about localStorage unavailability
             expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('localStorage'),
+                '[Telemetry]',
+                'localStorage is not available. aId will not be persisted.',
             );
         });
 
@@ -290,6 +291,16 @@ describe('Browser API availability tests', () => {
             vi.stubGlobal('PerformanceObserver', undefined);
             vi.stubGlobal('PerformanceNavigationTiming', undefined);
 
+            // Mock hostname to prevent cross-domain storage warnings
+            const originalLocation = window.location;
+            vi.stubGlobal('window', {
+                ...window,
+                location: {
+                    ...originalLocation,
+                    hostname: 'proton.me',
+                },
+            });
+
             createTelemetry({
                 endpoint: 'https://api.example.com/telemetry',
                 appVersion: '1.0.0',
@@ -300,10 +311,15 @@ describe('Browser API availability tests', () => {
             });
 
             expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining(
-                    'PerformanceObserver API is not supported',
-                ),
+                '[Telemetry]',
+                'PerformanceObserver API is not supported',
             );
+
+            // Restore original location
+            vi.stubGlobal('window', {
+                ...window,
+                location: originalLocation,
+            });
         });
     });
 
