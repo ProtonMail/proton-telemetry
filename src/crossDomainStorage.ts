@@ -21,7 +21,7 @@ const SUPPORTED_DOMAINS = ['proton.me', 'protonvpn.com', 'proton.black'];
 
 const DEFAULT_CONFIG: Required<CrossDomainStorageConfig> = {
     cookieName: 'aId',
-    maxAge: 3600 * 24, // 24 hours
+    maxAge: 300,
 };
 
 // Detect current domain configuration
@@ -282,9 +282,8 @@ export const createCrossDomainStorage = (
 // 1. Read the cookie
 // 2. If the cookie is present, update the localStorage (cookie takes precedence)
 // 3. If the cookie is not present, use the id from localStorage
-// 4. If the localStorage is not present, generate a new aId
-// 5. Set the cookie for the next hop
-// 6. Return the final aId
+// 4. If the localStorage is not present, aId will be null
+// 5. Return the final aId. Cookie setting for the next hop is handled separately.
 export const handleCrossDomainTelemetryId = (
     currentAIdFromLocalStorage?: string,
     config?: CrossDomainStorageConfig,
@@ -325,17 +324,6 @@ export const handleCrossDomainTelemetryId = (
         } else if (currentAIdFromLocalStorage) {
             log(debug, `Using local aId: ${currentAIdFromLocalStorage}`);
             finalAId = currentAIdFromLocalStorage;
-            // No incoming cookie to clean here.
-        }
-
-        if (finalAId) {
-            log(debug, `Refreshing cookie for next hop: ${finalAId}`);
-            storage.setTelemetryId(finalAId);
-        } else {
-            logError(
-                debug,
-                'No authoritative aId established (local or cookie); not setting cookie for next hop.',
-            );
         }
 
         return finalAId;
@@ -343,4 +331,63 @@ export const handleCrossDomainTelemetryId = (
         logError(debug, 'Error in handleCrossDomainTelemetryId:', error);
         return currentAIdFromLocalStorage || null;
     }
+};
+
+/**
+ * Initializes cross-domain tracking by setting up a 'visibilitychange' event listener.
+ * When the page becomes hidden, it saves the analytics ID from localStorage to a cookie.
+ */
+export const initCrossDomainTracking = (
+    config?: CrossDomainStorageConfig,
+    debug = false,
+): (() => void) => {
+    const LOCAL_STORAGE_KEY = 'aId';
+    const storage = createCrossDomainStorage(config, debug);
+
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+            try {
+                if (!storage.isSupported()) {
+                    return;
+                }
+                const aId =
+                    typeof localStorage !== 'undefined'
+                        ? localStorage.getItem(LOCAL_STORAGE_KEY)
+                        : null;
+
+                if (aId) {
+                    storage.setTelemetryId(aId);
+                    log(debug, `Set cross-domain cookie on visibility change.`);
+                }
+            } catch (error) {
+                logError(
+                    debug,
+                    'Error setting cross-domain cookie on visibility change:',
+                    error,
+                );
+            }
+        }
+    };
+
+    if (
+        typeof document !== 'undefined' &&
+        'addEventListener' in document &&
+        storage.isSupported()
+    ) {
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        log(debug, 'Initialized cross-domain tracking on visibility change.');
+    }
+
+    // Return a cleanup function to remove the event listener
+    return () => {
+        if (
+            typeof document !== 'undefined' &&
+            'removeEventListener' in document
+        ) {
+            document.removeEventListener(
+                'visibilitychange',
+                handleVisibilityChange,
+            );
+        }
+    };
 };

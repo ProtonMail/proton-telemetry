@@ -25,6 +25,7 @@ import { createConfig } from './config/utils';
 import {
     handleCrossDomainTelemetryId,
     createCrossDomainStorage,
+    initCrossDomainTracking,
 } from './crossDomainStorage';
 
 export type CreateTelemetryReturn = {
@@ -56,6 +57,7 @@ export const createTelemetry = (
         eventQueue: [] as QueuedEvent[],
         batchTimeout: null as NodeJS.Timeout | null,
         retryCount: 0,
+        destroyCrossDomainTracking: () => {},
     };
 
     function isLocalStorageAvailable(): boolean {
@@ -227,19 +229,7 @@ export const createTelemetry = (
                 if (stored) {
                     state.aId = stored;
 
-                    // Set in cross-domain cookie for future cross-domain access
-                    try {
-                        const crossDomainStorage = createCrossDomainStorage(
-                            config.crossDomain,
-                            config.debug,
-                        );
-                        if (crossDomainStorage.isSupported()) {
-                            crossDomainStorage.setTelemetryId(stored);
-                        }
-                    } catch (e) {
-                        log(config.debug, 'Error setting telemetry ID:', e);
-                    }
-
+                    // The cookie for the next hop will be set on 'visibilitychange'
                     return stored;
                 }
 
@@ -247,18 +237,7 @@ export const createTelemetry = (
                 localStorage.setItem(storageKey, newId);
                 state.aId = newId;
 
-                // Set in cross-domain cookie for future cross-domain access
-                try {
-                    const crossDomainStorage = createCrossDomainStorage(
-                        config.crossDomain,
-                        config.debug,
-                    );
-                    if (crossDomainStorage.isSupported()) {
-                        crossDomainStorage.setTelemetryId(newId);
-                    }
-                } catch (e) {
-                    log(config.debug, 'Error setting telemetry ID:', e);
-                }
+                // The cookie for the next hop will be set on 'visibilitychange'
 
                 void sendData('random_uid_created', {}, undefined, 'low');
                 return newId;
@@ -288,6 +267,10 @@ export const createTelemetry = (
         state.pageLoadTime = safePerformance.now();
         state.userTimezone = getFormattedUTCTimezone();
         state.userLanguage = safeNavigator.language;
+        state.destroyCrossDomainTracking = initCrossDomainTracking(
+            config.crossDomain,
+            config.debug,
+        );
     }
 
     const eventSender = createEventSender(
@@ -393,6 +376,7 @@ export const createTelemetry = (
         }
 
         eventSender.destroy();
+        state.destroyCrossDomainTracking();
 
         // Clean up cross-domain cookie
         const crossDomainStorage = createCrossDomainStorage(
