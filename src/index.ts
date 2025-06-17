@@ -2,6 +2,7 @@ export {
     createTelemetry as ProtonTelemetry,
     createCustomEventSender,
 } from './telemetry';
+
 export type {
     CreateTelemetryReturn,
     CreateTelemetryType as ProtonTelemetryType,
@@ -14,3 +15,13 @@ export type {
     CustomEventType,
     StandardEventType,
 } from './types';
+
+// Singleton exports
+export {
+    getTelemetryInstance,
+    ProtonTelemetrySingleton,
+    destroyTelemetryInstance,
+    getExistingTelemetryInstance,
+    sendCustomEvent,
+    sendPageView,
+} from './singleton';

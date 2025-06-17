@@ -15,35 +15,39 @@ To consume the library in your own repository, please do the following:
 Add this code somewhere where it will run on every page load:
 
 ```ts
-import { ProtonTelemetry } from '@protontech/telemetry'
+import { ProtonTelemetrySingleton } from '@protontech/telemetry'
 ...
 
-const telemetry = ProtonTelemetry({
+ProtonTelemetrySingleton({
     endpoint, // one of either https://telemetry.proton.me/payload or https://telemetry.protonvpn.com/payload
     appVersion: 'web-static@<appVersion>', // e.g. 'web-static@3.14.1'
+    debug: import.meta.env.DEV, // optional: enable debug logging in development
 });
-
-window.protonTelemetry = telemetry;
 ```
 
 Note that the endpoint should match the domain of the page where the script will run, so that the correct `Session-Id` can be passed to the backend.
 
+The singleton pattern ensures that telemetry is initialized once globally and can be accessed from anywhere in your application without needing to pass the instance around.
+
 ## React hooks
 
-This library is meant to be lightweight and framework-agnostic, but it exports a helper function that should make it easy to send custom events. In React, you should be able to implement a custom event hook this way:
+This library is meant to be lightweight and framework-agnostic, but it exports a helper function that should make it easy to send custom events. In React, you can implement a custom event hook and helper function this way:
 
 ```jsx
-import { createCustomEventSender } from '@proton/telemetry';
+import { useEffect } from 'react';
+import { sendCustomEvent } from '@protontech/telemetry';
 
-export function useSendCustomEvent(
-    telemetry: ReturnType<typeof createTelemetry>,
-    eventType: string,
-    properties?: CustomEventData,
-    customData?: Record<string, unknown>
-) {
-    return () =>
-        createCustomEventSender(telemetry, eventType, properties, customData)();
-}
+type CustomEventData = Record<string, unknown>;
+
+export const useTrackCustomEvent = (eventType: string, data?: CustomEventData) => {
+    useEffect(() => {
+        sendCustomEvent(eventType, data || {});
+    }, [eventType, data]);
+};
+
+export const trackCustomEvent = (eventType: string, data?: CustomEventData) => {
+    sendCustomEvent(eventType, data || {});
+};
 ```
 
 Now you should be able to create and send custom events with something like this:
@@ -51,14 +55,10 @@ Now you should be able to create and send custom events with something like this
 ```jsx
 import { useSendCustomEvent } from './hooks/useSendCustomEvent';
 
-function MyComponent({ telemetry }) {
-    const sendBasicEvent = useSendCustomEvent(
-        telemetry,
-        'clickme_button_clicked',
-    );
+function MyComponent() {
+    const sendBasicEvent = useSendCustomEvent('clickme_button_clicked');
 
     const sendDetailedEvent = useSendCustomEvent(
-        telemetry,
         'form_submitted',
         { formId: 'contact-form' }, // custom properties
     );
@@ -79,22 +79,3 @@ function MyComponent({ telemetry }) {
     );
 }
 ```
-
-or if you prefer something simpler:
-
-```jsx
-import { useEffect } from 'react';
-
-type CustomEventData = Record<string, unknown>;
-
-export const useSendCustomEvent = (
-    eventType: string,
-    data?: CustomEventData
-) => {
-    useEffect(() => {
-        window.protonTelemetry?.sendCustomEvent(eventType, {}, data);
-    }, [eventType, data]);
-};
-```
-
-which you can call with the custom event name followed by the arbitrary data you want to pass.
