@@ -39,13 +39,13 @@ import { sendCustomEvent } from '@protontech/telemetry';
 
 type CustomEventData = Record<string, unknown>;
 
-export const useTrackCustomEvent = (eventType: string, data?: CustomEventData) => {
+export const useSendCustomEvent = (eventType: string, data?: CustomEventData) => {
     useEffect(() => {
         sendCustomEvent(eventType, data || {});
     }, [eventType, data]);
 };
 
-export const trackCustomEvent = (eventType: string, data?: CustomEventData) => {
+export const sendCustomEvent = (eventType: string, data?: CustomEventData) => {
     sendCustomEvent(eventType, data || {});
 };
 ```
