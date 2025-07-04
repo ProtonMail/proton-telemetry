@@ -9,7 +9,6 @@ import type {
 import {
     getPageType,
     getABTestFeatures,
-    getElementText,
     safeDocument,
     safeWindow,
     safePerformance,
@@ -91,7 +90,6 @@ export const createEventSender = (
         const clickData: ClickEventData = {
             elementType: target.tagName.toLowerCase(),
             elementId: target.id || undefined,
-            elementText: getElementText(target),
             elementHref: (target as HTMLAnchorElement).href || undefined,
             xPos,
             yPos,
