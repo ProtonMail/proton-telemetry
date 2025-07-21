@@ -9,6 +9,7 @@ describe('ProtonTelemetry - Page Type Detection', () => {
         const localStorageMock = {
             getItem: vi.fn(),
             setItem: vi.fn(),
+            removeItem: vi.fn(),
         };
         vi.stubGlobal('localStorage', localStorageMock);
 

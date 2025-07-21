@@ -78,6 +78,8 @@ export const createEventSender = (
     }
 
     function sendClick(event: Event) {
+        if (!shouldSend()) return;
+
         const target = event.target as HTMLElement;
         if (!target) return;
 
@@ -99,6 +101,8 @@ export const createEventSender = (
     }
 
     function sendFormSubmit(event: Event) {
+        if (!shouldSend()) return;
+
         const form = event.target as HTMLFormElement;
         if (!form) return;
 
@@ -118,6 +122,7 @@ export const createEventSender = (
     return {
         sendPageView: () => {
             if (!config.pageView) return;
+            if (!shouldSend()) return;
 
             if (state.pageStartTime && state.totalActiveTime > 0) {
                 handlePageExit();
@@ -151,12 +156,12 @@ export const createEventSender = (
             modalType: 'on_click' | 'exit_intent',
         ) => {
             if (!config.modal) return;
-            const modalData: ModalEventData = {
+            if (!shouldSend()) return;
+
+            void sendData('modal_view', {
                 modalId,
                 modalType,
-                timeToShow: Math.round(safePerformance.now() - pageLoadTime),
-            };
-            void sendData('modal_view', modalData);
+            } as ModalEventData);
         },
         destroy: () => {
             if (hasDocumentListeners) {

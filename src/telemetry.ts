@@ -27,6 +27,12 @@ import {
     createCrossDomainStorage,
     initCrossDomainTracking,
 } from './crossDomainStorage';
+import {
+    setPageTitleOverride,
+    clearPageTitleOverride,
+    getTelemetryEnabled,
+    setTelemetryEnabled as setTelemetryEnabledStorage,
+} from './utils/storage';
 
 export type CreateTelemetryReturn = {
     sendPageView: () => void;
@@ -40,6 +46,7 @@ export type CreateTelemetryReturn = {
         eventType: Exclude<string, StandardEventType>,
         customData?: Record<string, unknown>,
     ) => void;
+    setTelemetryEnabled: (enabled: boolean) => void;
     destroy: () => Promise<void>;
 };
 
@@ -72,37 +79,47 @@ export const createTelemetry = (
         }
     }
 
+    // Cleanup tracking identifiers when telemetry is disabled
+    function cleanupTrackingIdentifiers(): void {
+        try {
+            // Clean up localStorage aId
+            if (
+                typeof localStorage !== 'undefined' &&
+                localStorage.getItem('aId')
+            ) {
+                localStorage.removeItem('aId');
+            }
+
+            // Clean up cross-domain storage
+            const crossDomainStorage = createCrossDomainStorage(
+                config.crossDomain,
+                config.debug,
+            );
+            crossDomainStorage.cleanupCookie();
+        } catch (error) {
+            log(config.debug, 'Error cleaning up tracking identifiers:', error);
+        }
+    }
+
     function shouldSend(): boolean {
+        // Check user telemetry setting first
+        const telemetryEnabled = getTelemetryEnabled();
+        if (telemetryEnabled === false) {
+            cleanupTrackingIdentifiers();
+            return false;
+        }
+
+        // Existing DNT/GPC checks
         const dnt = safeNavigator.doNotTrack || safeWindow.doNotTrack;
         const gpc = safeNavigator.globalPrivacyControl;
         const baseShouldSend = !(dnt === '1' || dnt === 'yes' || gpc === true);
 
         if (!baseShouldSend) {
-            // Safely try to remove aId from localStorage and cross-domain storage
-            try {
-                // Clean up localStorage
-                if (
-                    typeof localStorage !== 'undefined' &&
-                    localStorage.getItem('aId')
-                ) {
-                    localStorage.removeItem('aId');
-                }
-
-                // Clean up cross-domain storage
-                const crossDomainStorage = createCrossDomainStorage(
-                    config.crossDomain,
-                    config.debug,
-                );
-                crossDomainStorage.cleanupCookie();
-            } catch (error) {
-                log(
-                    config.debug,
-                    'Error cleaning up cross-domain cookie:',
-                    error,
-                );
-            }
+            cleanupTrackingIdentifiers();
+            return false;
         }
-        return baseShouldSend;
+
+        return true;
     }
 
     const sendData = createSendData(
@@ -239,7 +256,9 @@ export const createTelemetry = (
 
                 // The cookie for the next hop will be set on 'visibilitychange'
 
-                void sendData('random_uid_created', {}, undefined, 'low');
+                if (shouldSend()) {
+                    void sendData('random_uid_created', {}, undefined, 'low');
+                }
                 return newId;
             } catch (error) {
                 logWarn(
@@ -257,6 +276,24 @@ export const createTelemetry = (
             );
             state.aId = generateMessageId();
             return state.aId;
+        }
+    }
+
+    // Initialize page title override from config before any events are sent
+    if (config.pageTitle !== undefined) {
+        setPageTitleOverride(config.pageTitle);
+    } else {
+        clearPageTitleOverride();
+    }
+
+    // Initialize telemetry enabled from config before any events are sent
+    if (config.telemetryEnabled !== undefined) {
+        setTelemetryEnabledStorage(config.telemetryEnabled);
+    } else {
+        // If no config provided but sessionStorage has no value, default to false
+        const currentSetting = getTelemetryEnabled();
+        if (currentSetting === null) {
+            setTelemetryEnabledStorage(false);
         }
     }
 
@@ -412,6 +449,9 @@ export const createTelemetry = (
         ) => {
             if (!shouldSend()) return;
             void sendData(eventType as CustomEventType, {}, customData);
+        },
+        setTelemetryEnabled: (enabled: boolean) => {
+            setTelemetryEnabledStorage(enabled);
         },
         destroy,
     };

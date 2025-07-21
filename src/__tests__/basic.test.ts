@@ -12,6 +12,7 @@ describe('ProtonTelemetry - Basic Functionality', () => {
         const localStorageMock = {
             getItem: vi.fn(),
             setItem: vi.fn(),
+            removeItem: vi.fn(),
         };
         vi.stubGlobal('localStorage', localStorageMock);
 
