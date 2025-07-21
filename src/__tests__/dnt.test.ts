@@ -112,6 +112,6 @@ describe('ProtonTelemetry - Do Not Track Functionality', () => {
         telemetry.sendPageView();
 
         expect(localStorage.removeItem).toHaveBeenCalledWith('aId');
-        expect(localStorage.getItem('aId')).toBeNull();
+        expect(mockStorage['aId']).toBeUndefined();
     });
 });

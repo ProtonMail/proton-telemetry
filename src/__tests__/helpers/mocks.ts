@@ -27,7 +27,31 @@ export const createLocalStorageMock = (
     let store = { ...initialStorage };
 
     return {
-        getItem: vi.fn((key: string) => store[key] || null),
+        getItem: vi.fn((key: string) => store[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => {
+            store[key] = value;
+        }),
+        removeItem: vi.fn((key: string) => {
+            delete store[key];
+        }),
+        clear: vi.fn(() => {
+            store = {};
+        }),
+        _getStore: () => store, // Helper for testing
+        _setStore: (newStore: Record<string, string>) => {
+            store = { ...newStore };
+        },
+    };
+};
+
+// Create sessionStorage mock
+export const createSessionStorageMock = (
+    initialStorage: Record<string, string> = {},
+) => {
+    let store = { ...initialStorage };
+
+    return {
+        getItem: vi.fn((key: string) => store[key] ?? null),
         setItem: vi.fn((key: string, value: string) => {
             store[key] = value;
         }),

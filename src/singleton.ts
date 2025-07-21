@@ -37,6 +37,7 @@ function createNoOpTelemetry(): CreateTelemetryReturn {
         sendForms: noOp,
         sendModalView: noOp,
         sendCustomEvent: noOp,
+        setTelemetryEnabled: noOp,
         destroy: asyncNoOp,
     };
 }
@@ -145,6 +146,19 @@ export function sendPageView(): void {
 
     if (instance) {
         instance.sendPageView();
+    } else {
+        console.warn(
+            '[Telemetry] No telemetry instance available. Call ProtonTelemetrySingleton() first.',
+        );
+    }
+}
+
+// Sets telemetry enabled state using the existing telemetry instance
+export function setTelemetryEnabled(enabled: boolean): void {
+    const instance = getExistingTelemetryInstance();
+
+    if (instance) {
+        instance.setTelemetryEnabled(enabled);
     } else {
         console.warn(
             '[Telemetry] No telemetry instance available. Call ProtonTelemetrySingleton() first.',

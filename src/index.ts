@@ -24,4 +24,5 @@ export {
     getExistingTelemetryInstance,
     sendCustomEvent,
     sendPageView,
+    setTelemetryEnabled,
 } from './singleton';

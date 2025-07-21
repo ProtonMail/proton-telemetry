@@ -6,6 +6,8 @@ export interface TelemetryConfig {
     debug?: boolean;
     dryRun?: boolean;
     uidHeader?: string;
+    pageTitle?: string;
+    telemetryEnabled?: boolean;
     crossDomain?: CrossDomainStorageConfig;
     events?: {
         pageView?: boolean;

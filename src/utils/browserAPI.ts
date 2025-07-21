@@ -1,8 +1,16 @@
 import { logError } from './helpers';
+import { getPageTitleOverride } from './storage';
 
 export const safeDocument = {
     get title(): string {
         try {
+            // Check for page title override first
+            const titleOverride = getPageTitleOverride();
+            if (titleOverride !== null) {
+                return titleOverride; // Could be empty string or custom title
+            }
+
+            // When no override is set, use actual document title
             return typeof document !== 'undefined' ? document.title || '' : '';
         } catch (e) {
             logError(true, 'Error getting document title', e);

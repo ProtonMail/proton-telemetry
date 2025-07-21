@@ -21,6 +21,7 @@ import { ProtonTelemetrySingleton } from '@protontech/telemetry'
 ProtonTelemetrySingleton({
     endpoint, // one of either https://telemetry.proton.me/payload or https://telemetry.protonvpn.com/payload
     appVersion: 'web-static@<appVersion>', // e.g. 'web-static@3.14.1'
+    pageTitle: 'Custom page title', // optional: override the page title with a custom one, useful for privacy-sensitive applications
     debug: import.meta.env.DEV, // optional: enable debug logging in development
 });
 ```
