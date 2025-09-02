@@ -68,7 +68,7 @@ describe('ProtonTelemetry - Do Not Track Functionality', () => {
 
         telemetry.sendPageView();
 
-        expect(localStorage.getItem('aId')).toBeNull();
+        expect(localStorage.getItem('zId')).toBeNull();
         expect(sendPageViewSpy).toHaveBeenCalled();
         expect(localStorage.setItem).not.toHaveBeenCalled();
     });
@@ -89,14 +89,14 @@ describe('ProtonTelemetry - Do Not Track Functionality', () => {
 
         telemetry.sendPageView();
 
-        expect(localStorage.getItem('aId')).toBeNull();
+        expect(localStorage.getItem('zId')).toBeNull();
         expect(sendPageViewSpy).toHaveBeenCalled();
         expect(localStorage.setItem).not.toHaveBeenCalled();
     });
 
-    it('removes existing aId when DNT is enabled', () => {
+    it('removes existing zId when DNT is enabled', () => {
         // First simulate an existing ID
-        mockStorage['aId'] = 'test-id';
+        mockStorage['zId'] = 'test-id';
 
         // Then enable DNT
         vi.stubGlobal('navigator', {
@@ -111,7 +111,7 @@ describe('ProtonTelemetry - Do Not Track Functionality', () => {
 
         telemetry.sendPageView();
 
-        expect(localStorage.removeItem).toHaveBeenCalledWith('aId');
-        expect(mockStorage['aId']).toBeUndefined();
+        expect(localStorage.removeItem).toHaveBeenCalledWith('zId');
+        expect(mockStorage['zId']).toBeUndefined();
     });
 });

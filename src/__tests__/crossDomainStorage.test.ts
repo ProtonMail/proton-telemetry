@@ -150,7 +150,7 @@ describe('CrossDomainStorage', () => {
 
             expect(success).toBe(true);
             expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-                'aId',
+                'zId',
                 testId,
             );
         });
@@ -252,14 +252,14 @@ describe('handleCrossDomainTelemetryId', () => {
         mockLocalStorage = mocks.mockLocalStorage;
     });
 
-    it('returns current aId when provided', () => {
+    it('returns current zId when provided', () => {
         const currentId = 'current-id-123';
         const result = handleCrossDomainTelemetryId(currentId);
 
         expect(result).toBe(currentId);
     });
 
-    it('retrieves aId from cross-domain cookie when no current aId', () => {
+    it('retrieves zId from cross-domain cookie when no current zId', () => {
         // Set up a cookie first
         const storage = createCrossDomainStorage();
         const testId = 'cross-domain-id-123';
@@ -268,10 +268,10 @@ describe('handleCrossDomainTelemetryId', () => {
         const result = handleCrossDomainTelemetryId();
 
         expect(result).toBe(testId);
-        expect(mockLocalStorage.setItem).toHaveBeenCalledWith('aId', testId);
+        expect(mockLocalStorage.setItem).toHaveBeenCalledWith('zId', testId);
     });
 
-    it('returns null when no aId available', () => {
+    it('returns null when no zId available', () => {
         const result = handleCrossDomainTelemetryId();
         expect(result).toBeNull();
     });

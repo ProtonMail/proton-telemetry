@@ -17,7 +17,7 @@ describe('ProtonTelemetry - Event Batching', () => {
         vi.useFakeTimers();
 
         mockStorage = {
-            aId: 'test-uuid', // Pre-set the aId to avoid random_uid_created event
+            zId: 'test-uuid', // Pre-set the zId to avoid random_uid_created event
         };
         localStorageMock = {
             // nosemgrep: gitlab.eslint.detect-object-injection

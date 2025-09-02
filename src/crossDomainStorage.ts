@@ -8,7 +8,7 @@ interface DomainInfo {
 }
 
 interface CrossDomainStorageInstance {
-    setTelemetryId: (aId: string) => boolean;
+    setTelemetryId: (zId: string) => boolean;
     getTelemetryId: () => string | null;
     transferToLocalStorage: (storageKey?: string) => boolean;
     cleanupCookie: () => void;
@@ -20,7 +20,7 @@ interface CrossDomainStorageInstance {
 const SUPPORTED_DOMAINS = ['proton.me', 'protonvpn.com', 'proton.black'];
 
 const DEFAULT_CONFIG: Required<CrossDomainStorageConfig> = {
-    cookieName: 'aId',
+    cookieName: 'zId',
     maxAge: 300,
 };
 
@@ -49,9 +49,9 @@ const detectDomainInfo = (): DomainInfo | null => {
 };
 
 // Create encoded cookie value with timestamp
-const createCookieValue = (aId: string): string => {
+const createCookieValue = (zId: string): string => {
     const data = {
-        aId,
+        zId,
         timestamp: Date.now(),
         version: 1,
     };
@@ -61,17 +61,17 @@ const createCookieValue = (aId: string): string => {
 // Parse encoded cookie value
 const parseCookieValue = (
     cookieValue: string,
-): { aId: string; timestamp: number } | null => {
+): { zId: string; timestamp: number } | null => {
     try {
         const decoded = atob(cookieValue);
         const data = JSON.parse(decoded);
 
         if (
             data &&
-            typeof data.aId === 'string' &&
+            typeof data.zId === 'string' &&
             typeof data.timestamp === 'number'
         ) {
-            return { aId: data.aId, timestamp: data.timestamp };
+            return { zId: data.zId, timestamp: data.timestamp };
         }
 
         return null;
@@ -147,17 +147,17 @@ export const createCrossDomainStorage = (
     const finalConfig = { ...DEFAULT_CONFIG, ...config };
     const domainInfo = detectDomainInfo();
 
-    const setTelemetryId = (aId: string): boolean => {
+    const setTelemetryId = (zId: string): boolean => {
         try {
-            if (!domainInfo || !aId || typeof document === 'undefined') {
+            if (!domainInfo || !zId || typeof document === 'undefined') {
                 log(
                     debug,
-                    'Cannot set telemetry ID: missing domain info or aId',
+                    'Cannot set telemetry ID: missing domain info or zId',
                 );
                 return false;
             }
 
-            const cookieValue = createCookieValue(aId);
+            const cookieValue = createCookieValue(zId);
             const cookieString = buildCookieString(
                 cookieValue,
                 finalConfig.cookieName,
@@ -168,7 +168,7 @@ export const createCrossDomainStorage = (
             document.cookie = cookieString;
             log(debug, 'Set telemetry ID cookie:', cookieValue);
 
-            return verifyWriteSuccess(aId);
+            return verifyWriteSuccess(zId);
         } catch (error) {
             log(debug, 'Error setting telemetry ID:', error);
             return false;
@@ -192,23 +192,23 @@ export const createCrossDomainStorage = (
                 return null;
             }
 
-            log(debug, 'Retrieved telemetry ID:', parsed.aId);
-            return parsed.aId;
+            log(debug, 'Retrieved telemetry ID:', parsed.zId);
+            return parsed.zId;
         } catch (error) {
             log(debug, 'Error getting telemetry ID:', error);
             return null;
         }
     };
 
-    const transferToLocalStorage = (storageKey = 'aId'): boolean => {
+    const transferToLocalStorage = (storageKey = 'zId'): boolean => {
         try {
-            const aId = getTelemetryId();
-            if (!aId) {
+            const zId = getTelemetryId();
+            if (!zId) {
                 return false;
             }
 
             if (typeof localStorage !== 'undefined') {
-                localStorage.setItem(storageKey, aId);
+                localStorage.setItem(storageKey, zId);
                 log(debug, 'Transferred telemetry ID to localStorage');
             }
 
@@ -221,10 +221,10 @@ export const createCrossDomainStorage = (
         }
     };
 
-    const verifyWriteSuccess = (expectedAId: string): boolean => {
+    const verifyWriteSuccess = (expectedZId: string): boolean => {
         try {
             const retrieved = getTelemetryId();
-            return retrieved === expectedAId;
+            return retrieved === expectedZId;
         } catch {
             return false;
         }
@@ -282,54 +282,54 @@ export const createCrossDomainStorage = (
 // 1. Read the cookie
 // 2. If the cookie is present, update the localStorage (cookie takes precedence)
 // 3. If the cookie is not present, use the id from localStorage
-// 4. If the localStorage is not present, aId will be null
-// 5. Return the final aId. Cookie setting for the next hop is handled separately.
+// 4. If the localStorage is not present, zId will be null
+// 5. Return the final zId. Cookie setting for the next hop is handled separately.
 export const handleCrossDomainTelemetryId = (
-    currentAIdFromLocalStorage?: string,
+    currentZIdFromLocalStorage?: string,
     config?: CrossDomainStorageConfig,
     debug = false,
 ): string | null => {
     // TODO: move to constants.ts after the other MR handling constants is merged
-    const LOCAL_STORAGE_KEY = 'aId';
+    const LOCAL_STORAGE_KEY = 'zId';
 
     try {
         const storage = createCrossDomainStorage(config, debug);
 
         if (!storage.isSupported()) {
             logWarn(debug, 'Cross-domain storage not supported.');
-            return currentAIdFromLocalStorage || null;
+            return currentZIdFromLocalStorage || null;
         }
 
-        const aIdFromIncomingCookie = storage.getTelemetryId();
-        let finalAId: string | null = null;
+        const zIdFromIncomingCookie = storage.getTelemetryId();
+        let finalZId: string | null = null;
 
-        if (aIdFromIncomingCookie) {
-            log(debug, `Cookie aId: ${aIdFromIncomingCookie}`);
-            finalAId = aIdFromIncomingCookie;
+        if (zIdFromIncomingCookie) {
+            log(debug, `Cookie zId: ${zIdFromIncomingCookie}`);
+            finalZId = zIdFromIncomingCookie;
 
-            if (currentAIdFromLocalStorage !== aIdFromIncomingCookie) {
+            if (currentZIdFromLocalStorage !== zIdFromIncomingCookie) {
                 if (typeof localStorage !== 'undefined') {
-                    localStorage.setItem(LOCAL_STORAGE_KEY, finalAId);
-                    log(debug, `Updated localStorage with cookie: ${finalAId}`);
+                    localStorage.setItem(LOCAL_STORAGE_KEY, finalZId);
+                    log(debug, `Updated localStorage with cookie: ${finalZId}`);
                 } else {
                     logWarn(
                         debug,
-                        `localStorage not available, cannot update with cookie: ${finalAId}`,
+                        `localStorage not available, cannot update with cookie: ${finalZId}`,
                     );
                 }
             }
             // Whether localStorage was updated or matched, the incoming cookie was processed and can be cleaned up
             storage.cleanupCookie();
             log(debug, `Cleaned processed incoming cookie.`);
-        } else if (currentAIdFromLocalStorage) {
-            log(debug, `Using local aId: ${currentAIdFromLocalStorage}`);
-            finalAId = currentAIdFromLocalStorage;
+        } else if (currentZIdFromLocalStorage) {
+            log(debug, `Using local zId: ${currentZIdFromLocalStorage}`);
+            finalZId = currentZIdFromLocalStorage;
         }
 
-        return finalAId;
+        return finalZId;
     } catch (error) {
         logError(debug, 'Error in handleCrossDomainTelemetryId:', error);
-        return currentAIdFromLocalStorage || null;
+        return currentZIdFromLocalStorage || null;
     }
 };
 
@@ -341,7 +341,7 @@ export const initCrossDomainTracking = (
     config?: CrossDomainStorageConfig,
     debug = false,
 ): (() => void) => {
-    const LOCAL_STORAGE_KEY = 'aId';
+    const LOCAL_STORAGE_KEY = 'zId';
     const storage = createCrossDomainStorage(config, debug);
 
     const handleVisibilityChange = () => {
@@ -350,13 +350,13 @@ export const initCrossDomainTracking = (
                 if (!storage.isSupported()) {
                     return;
                 }
-                const aId =
+                const zId =
                     typeof localStorage !== 'undefined'
                         ? localStorage.getItem(LOCAL_STORAGE_KEY)
                         : null;
 
-                if (aId) {
-                    storage.setTelemetryId(aId);
+                if (zId) {
+                    storage.setTelemetryId(zId);
                     log(debug, `Set cross-domain cookie on visibility change.`);
                 }
             } catch (error) {
