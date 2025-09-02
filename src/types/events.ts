@@ -1,5 +1,5 @@
 export interface TelemetryEvent {
-    aId: string;
+    zId: string;
     messageId: string;
     clientEventTimestampUtc: string;
     clientEventTimestampLocal: string;

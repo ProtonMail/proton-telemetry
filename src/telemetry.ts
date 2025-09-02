@@ -56,7 +56,7 @@ export const createTelemetry = (
     const config = createConfig(userConfig);
 
     const state = {
-        aId: '',
+        zId: '',
         pageLoadTime: 0,
         userTimezone: '',
         userLanguage: '',
@@ -82,12 +82,12 @@ export const createTelemetry = (
     // Cleanup tracking identifiers when telemetry is disabled
     function cleanupTrackingIdentifiers(): void {
         try {
-            // Clean up localStorage aId
+            // Clean up localStorage zId
             if (
                 typeof localStorage !== 'undefined' &&
-                localStorage.getItem('aId')
+                localStorage.getItem('zId')
             ) {
-                localStorage.removeItem('aId');
+                localStorage.removeItem('zId');
             }
 
             // Clean up cross-domain storage
@@ -176,7 +176,7 @@ export const createTelemetry = (
         const screen = safeWindow.screen;
 
         return {
-            aId: state.aId,
+            zId: state.zId,
             messageId: generateMessageId(),
             clientEventTimestampUtc: utcTimestamp,
             clientEventTimestampLocal: localTimestamp,
@@ -223,28 +223,28 @@ export const createTelemetry = (
         };
     }
 
-    function getOrCreateAId(): string {
+    function getOrCreateZId(): string {
         // TODO: put in constants file
-        const storageKey = 'aId';
+        const storageKey = 'zId';
 
         if (isLocalStorageAvailable()) {
             try {
                 // First, try to handle cross-domain analytics ID
                 let stored = localStorage.getItem(storageKey);
-                const crossDomainAId = handleCrossDomainTelemetryId(
+                const crossDomainZId = handleCrossDomainTelemetryId(
                     stored || undefined,
                     config.crossDomain,
                     config.debug,
                 );
 
-                if (crossDomainAId && crossDomainAId !== stored) {
-                    // Update localStorage with cross-domain aId
-                    localStorage.setItem(storageKey, crossDomainAId);
-                    stored = crossDomainAId;
+                if (crossDomainZId && crossDomainZId !== stored) {
+                    // Update localStorage with cross-domain zId
+                    localStorage.setItem(storageKey, crossDomainZId);
+                    stored = crossDomainZId;
                 }
 
                 if (stored) {
-                    state.aId = stored;
+                    state.zId = stored;
 
                     // The cookie for the next hop will be set on 'visibilitychange'
                     return stored;
@@ -252,7 +252,7 @@ export const createTelemetry = (
 
                 const newId = generateMessageId();
                 localStorage.setItem(storageKey, newId);
-                state.aId = newId;
+                state.zId = newId;
 
                 // The cookie for the next hop will be set on 'visibilitychange'
 
@@ -263,19 +263,19 @@ export const createTelemetry = (
             } catch (error) {
                 logWarn(
                     config.debug,
-                    'Error accessing localStorage in getOrCreateAId:',
+                    'Error accessing localStorage in getOrCreateZId:',
                     error,
                 );
-                state.aId = generateMessageId();
-                return state.aId;
+                state.zId = generateMessageId();
+                return state.zId;
             }
         } else {
             logWarn(
                 config.debug,
-                'localStorage is not available. aId will not be persisted.',
+                'localStorage is not available. zId will not be persisted.',
             );
-            state.aId = generateMessageId();
-            return state.aId;
+            state.zId = generateMessageId();
+            return state.zId;
         }
     }
 
@@ -300,7 +300,7 @@ export const createTelemetry = (
     const shouldSendTelemetry = shouldSend();
 
     if (shouldSendTelemetry) {
-        state.aId = getOrCreateAId();
+        state.zId = getOrCreateZId();
         state.pageLoadTime = safePerformance.now();
         state.userTimezone = getFormattedUTCTimezone();
         state.userLanguage = safeNavigator.language;

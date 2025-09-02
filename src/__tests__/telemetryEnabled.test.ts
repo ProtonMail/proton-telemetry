@@ -42,7 +42,7 @@ describe('Telemetry enabled controls', () => {
 
         await destroyTelemetryInstance();
 
-        localStorageMock = createLocalStorageMock({ aId: 'test-uuid' });
+        localStorageMock = createLocalStorageMock({ zId: 'test-uuid' });
         vi.stubGlobal('localStorage', localStorageMock);
         sessionStorageMock = createSessionStorageMock();
         vi.stubGlobal('sessionStorage', sessionStorageMock);
@@ -247,7 +247,7 @@ describe('Telemetry enabled controls', () => {
 
     describe('Identifier cleanup', () => {
         it('cleans up identifiers when disabling at runtime', async () => {
-            localStorageMock._setStore({ aId: 'existing-id' });
+            localStorageMock._setStore({ zId: 'existing-id' });
 
             const telemetry = createTelemetry({
                 ...getBaseConfig(),
@@ -257,7 +257,7 @@ describe('Telemetry enabled controls', () => {
             telemetry.setTelemetryEnabled(false);
             telemetry.sendCustomEvent('test_event');
             await vi.advanceTimersByTimeAsync(BATCH_DELAY);
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith('aId');
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith('zId');
         });
     });
 

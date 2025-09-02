@@ -123,7 +123,7 @@ export const setupCrossDomainTest = (hostname = 'proton.me') => {
 
 // Setup for basic telemetry tests
 export const setupBasicTelemetryTest = (
-    initialStorage = { aId: 'test-uuid' },
+    initialStorage = { zId: 'test-uuid' },
 ) => {
     const localStorageMock = createLocalStorageMock(initialStorage);
     vi.stubGlobal('localStorage', localStorageMock);

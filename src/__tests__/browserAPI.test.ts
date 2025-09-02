@@ -54,7 +54,7 @@ describe('Browser API availability tests', () => {
             // Should log warnings about localStorage unavailability
             expect(consoleSpy).toHaveBeenCalledWith(
                 '[Telemetry]',
-                'localStorage is not available. aId will not be persisted.',
+                'localStorage is not available. zId will not be persisted.',
             );
         });
 
@@ -93,7 +93,7 @@ describe('Browser API availability tests', () => {
 
             // Should have generated a UUID-like messageId using fallback
             expect(event.messageId).toHaveLength(36);
-            expect(event.aId).toHaveLength(36);
+            expect(event.zId).toHaveLength(36);
         });
 
         it('handles crypto.randomUUID being unavailable', () => {
