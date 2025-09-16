@@ -146,7 +146,7 @@ export function createSendData(
         eventType: EventType,
         eventData?: EventData,
         customData?: Record<string, unknown>,
-        priority: EventPriority = 'high',
+        priority: EventPriority = 'low',
     ): Promise<boolean> {
         const event = deps.createEventPayload(eventType, eventData, customData);
 
@@ -156,6 +156,15 @@ export function createSendData(
         }
 
         state.eventQueue.push({ event, priority });
+
+        // Send immediately for high-priority events when not retrying
+        if (priority === 'high' && state.retryCount === 0) {
+            if (state.batchTimeout !== null) {
+                clearTimeout(state.batchTimeout);
+                state.batchTimeout = null;
+            }
+            return await sendBatch();
+        }
 
         if (state.batchTimeout === null && state.retryCount === 0) {
             // Only schedule a new batch if one isn't already pending or retrying
