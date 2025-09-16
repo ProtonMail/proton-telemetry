@@ -70,6 +70,8 @@ describe('ProtonTelemetry - Basic Functionality', () => {
     });
 
     it('adds appVersion header', async () => {
+        mockFetch.mockClear();
+
         telemetry.sendPageView();
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
 

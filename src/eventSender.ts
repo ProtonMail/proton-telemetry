@@ -19,6 +19,7 @@ export const createEventSender = (
         eventType: EventType,
         eventData?: EventData,
         customData?: Record<string, unknown>,
+        priority?: 'high' | 'low',
     ) => Promise<boolean>,
     pageLoadTime: number,
     config: {
@@ -139,9 +140,14 @@ export const createEventSender = (
                 referrer: safeDocument.referrer,
             };
 
-            void sendData('page_view', pageViewData, {
-                features: getABTestFeatures(),
-            });
+            void sendData(
+                'page_view',
+                pageViewData,
+                {
+                    features: getABTestFeatures(),
+                } as Record<string, unknown>,
+                'high',
+            );
         },
         initClickSending: () => {
             if (!config.click) return;

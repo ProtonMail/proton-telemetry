@@ -3,14 +3,12 @@ import { createPerformanceObserver } from './performanceObserver';
 import type {
     TelemetryConfig,
     TelemetryEvent,
-    BatchedTelemetryEvents,
     QueuedEvent,
     EventType,
     CustomEventType,
     StandardEventType,
 } from './types';
 import {
-    fetchWithHeaders,
     generateMessageId,
     getFormattedUTCTimezone,
     safeDocument,
@@ -33,6 +31,7 @@ import {
     getTelemetryEnabled,
     setTelemetryEnabled as setTelemetryEnabledStorage,
 } from './utils/storage';
+import { attachPageHideFlush, flushQueue } from './flush';
 
 export type CreateTelemetryReturn = {
     sendPageView: () => void;
@@ -260,7 +259,7 @@ export const createTelemetry = (
                 // The cookie for the next hop will be set on 'visibilitychange'
 
                 if (shouldSend()) {
-                    void sendData('random_uid_created', {}, undefined, 'low');
+                    void sendData('random_uid_created', {}, undefined, 'high');
                 }
                 return newId;
             } catch (error) {
@@ -331,6 +330,8 @@ export const createTelemetry = (
         config.debug,
     );
 
+    let detachPageHideFlush: () => void = () => {};
+
     if (shouldSendTelemetry) {
         if (config.events.pageView) {
             eventSender.sendPageView();
@@ -343,6 +344,30 @@ export const createTelemetry = (
         if (config.events.performance) {
             performanceObserver.initializeObserver();
         }
+
+        // Add a pagehide flush to reduce event loss on navigation
+        try {
+            const flush = async () => {
+                try {
+                    if (state.batchTimeout) {
+                        clearTimeout(state.batchTimeout);
+                        state.batchTimeout = null;
+                    }
+                    await flushQueue(
+                        config.endpoint,
+                        config.appVersion,
+                        config.uidHeader,
+                        config.debug,
+                        state.eventQueue,
+                    );
+                } catch {
+                    // ignore flush errors
+                }
+            };
+            detachPageHideFlush = attachPageHideFlush(flush);
+        } catch {
+            // ignore addEventListener issues
+        }
     }
 
     const destroy = async (): Promise<void> => {
@@ -351,71 +376,27 @@ export const createTelemetry = (
         }
 
         if (state.eventQueue.length > 0) {
-            const batchedEvents: BatchedTelemetryEvents = {
-                events: state.eventQueue.map(
-                    (queuedEvent) => queuedEvent.event,
-                ),
-            };
-
-            const body = JSON.stringify(batchedEvents);
-
-            if (navigator.sendBeacon) {
-                try {
-                    const blob = new Blob([body], {
-                        type: 'application/json',
-                    });
-                    const success = navigator.sendBeacon(config.endpoint, blob);
-                    if (success) {
-                        state.eventQueue = [];
-                        log(
-                            config.debug,
-                            'Successfully sent batch via sendBeacon.',
-                        );
-                    } else {
-                        // fall back to fetchWithHeaders
-                        log(
-                            config.debug,
-                            'navigator.sendBeacon failed, attempting fallback to fetch.',
-                        );
-                    }
-                } catch (error) {
-                    if (config.debug) {
-                        log(
-                            config.debug,
-                            'Error using navigator.sendBeacon, attempting fallback to fetch:',
-                            error,
-                        );
-                    }
-                }
-            }
-
-            // Fallback or if sendBeacon is not available / failed and queue isn't empty
-            if (state.eventQueue.length > 0) {
-                try {
-                    await fetchWithHeaders(
-                        config.endpoint,
-                        config.appVersion,
-                        config.uidHeader,
-                        {
-                            method: 'POST',
-                            body,
-                            keepalive: true,
-                        },
+            try {
+                await flushQueue(
+                    config.endpoint,
+                    config.appVersion,
+                    config.uidHeader,
+                    config.debug,
+                    state.eventQueue,
+                );
+            } catch (error) {
+                if (config.debug) {
+                    log(
+                        config.debug,
+                        'Telemetry error during destroy flush:',
+                        error,
                     );
-                    state.eventQueue = [];
-                } catch (error) {
-                    if (config.debug) {
-                        log(
-                            config.debug,
-                            'Telemetry error (fetch fallback):',
-                            error,
-                        );
-                    }
                 }
             }
         }
 
         eventSender.destroy();
+        detachPageHideFlush();
         state.destroyCrossDomainTracking();
 
         // Clean up cross-domain cookie
