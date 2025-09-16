@@ -139,6 +139,23 @@ describe('CrossDomainStorage', () => {
             expect(retrievedAfterExpiry).toBeNull();
             vi.useRealTimers();
         });
+
+        it('falls back to legacy aId cookie and migrates to zId', () => {
+            const legacyValue = btoa(
+                JSON.stringify({
+                    aId: 'legacy-id-999',
+                    timestamp: Date.now(),
+                    version: 1,
+                }),
+            );
+            document.cookie = `aId=${legacyValue}; Max-Age=300; Domain=.proton.me; Path=/`;
+
+            const retrieved = storage.getTelemetryId();
+            expect(retrieved).toBe('legacy-id-999');
+
+            const zCookie = document.cookie.includes('zId=');
+            expect(zCookie).toBe(true);
+        });
     });
 
     describe('LocalStorage transfer', () => {
@@ -173,6 +190,23 @@ describe('CrossDomainStorage', () => {
             const success = storage.transferToLocalStorage();
             expect(success).toBe(false);
         });
+
+        it("mirrors zId into legacy 'aId' key during migration", () => {
+            const testId = 'test-telemetry-id-789';
+            storage.setTelemetryId(testId);
+
+            const success = storage.transferToLocalStorage();
+
+            expect(success).toBe(true);
+            expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+                'zId',
+                testId,
+            );
+            expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+                'aId',
+                testId,
+            );
+        });
     });
 
     describe('Cookie cleanup', () => {
@@ -193,6 +227,20 @@ describe('CrossDomainStorage', () => {
 
             // Verify cookie is actually removed
             expect(storage.getTelemetryId()).toBeNull();
+        });
+
+        it('removes both zId and legacy aId cookies on cleanup', () => {
+            const testId = 'test-cookie-cleanup-124';
+            storage.setTelemetryId(testId);
+
+            // Ensure both cookies were written
+            expect(document.cookie.includes('zId=')).toBe(true);
+            expect(document.cookie.includes('aId=')).toBe(true);
+
+            storage.cleanupCookie();
+
+            expect(document.cookie.includes('zId=')).toBe(false);
+            expect(document.cookie.includes('aId=')).toBe(false);
         });
     });
 
