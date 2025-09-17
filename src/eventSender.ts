@@ -118,6 +118,39 @@ export const createEventSender = (
         safeWindow.addEventListener('beforeunload', handlePageExit) &&
         safeWindow.addEventListener('pagehide', handlePageExit);
 
+    // listen for pageshow for BFCache restores
+    let hasPageShowListener = false;
+    try {
+        hasPageShowListener = safeWindow.addEventListener(
+            'pageshow',
+            (event: Event) => {
+                try {
+                    const ps = event as PageTransitionEvent;
+                    if (ps.persisted && config.pageView && shouldSend()) {
+                        // Send a page_view event when restored from BFCache
+                        const location = safeWindow.location;
+                        const pageViewData: PageViewEventData = {
+                            pageTitle: safeDocument.title,
+                            pageType: getPageType(location.pathname),
+                            path: location.pathname,
+                            referrer: safeDocument.referrer,
+                        };
+                        void sendData(
+                            'page_view',
+                            pageViewData,
+                            { features: getABTestFeatures() } as Record<
+                                string,
+                                unknown
+                            >,
+                            'high',
+                        );
+                        resetTime();
+                    }
+                } catch {}
+            },
+        );
+    } catch {}
+
     resetTime();
 
     return {
@@ -179,6 +212,9 @@ export const createEventSender = (
             if (hasWindowListeners) {
                 safeWindow.removeEventListener('beforeunload', handlePageExit);
                 safeWindow.removeEventListener('pagehide', handlePageExit);
+            }
+            if (hasPageShowListener) {
+                safeWindow.removeEventListener('pageshow', () => {});
             }
             if (config.click) {
                 safeDocument.removeEventListener('click', sendClick);
