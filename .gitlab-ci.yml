@@ -23,7 +23,7 @@ workflow:
         - when: never
 
 include:
-    - component: 'gitlab.protontech.ch/proton/devops/cicd-components/kits/devsecops/semgrep@0.0.39'
+    - component: 'gitlab.protontech.ch/proton/devops/cicd-components/kits/devsecops/semgrep@0.0.43'
       inputs:
           runner-tag: shared-small
           stage: security
