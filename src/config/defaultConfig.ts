@@ -4,6 +4,7 @@ export const defaultConfig: Partial<TelemetryConfig> = {
     debug: false,
     dryRun: false,
     pageTitle: undefined,
+    urlSanitization: { stripHash: true },
     telemetryEnabled: true,
     events: {
         pageView: true,

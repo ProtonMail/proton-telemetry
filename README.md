@@ -1,10 +1,10 @@
 # Proton Telemetry
 
-This repository contains a lightweight TypeScript library for frontend telemetry on the storefront and account websites that respects users' DoNotTrack and GPC browser privacy settings. Please see the [Proton Privacy Policy](https://proton.me/legal/privacy) for more information.
+This repository contains a lightweight TypeScript library for frontend telemetry that respects users' DoNotTrack and GPC browser privacy settings. Please see the [Proton Privacy Policy](https://proton.me/legal/privacy) for more information.
 
 ## Consuming the library
 
-To consume the library in your own repository, please do the following:
+To consume the library in your own repository, follow these steps:
 
 ### Install the package
 
@@ -12,7 +12,7 @@ To consume the library in your own repository, please do the following:
 
 ### Integrate telemetry in your project
 
-Add this code somewhere where it will run on every page load:
+Add this code somewhere where it will run on every page load, with the desired configuration, for example:
 
 ```ts
 import { ProtonTelemetrySingleton } from '@protontech/telemetry'
@@ -22,13 +22,14 @@ ProtonTelemetrySingleton({
     endpoint, // one of either https://telemetry.proton.me/payload or https://telemetry.protonvpn.com/payload
     appVersion: 'web-static@<appVersion>', // e.g. 'web-static@3.14.1'
     pageTitle: 'Custom page title', // optional: override the page title with a custom one, useful for privacy-sensitive applications
+    urlSanitization: { // optional: stripHash defaults to true; set to false if your app needs hash data in telemetry
+        sanitizeUrl: (url) => { url.pathname = url.pathname.replace(/\/user\/[^/]+/, '/user/[redacted]'); return url; }, // optional: modify and return the URL instance
+    },
     debug: import.meta.env.DEV, // optional: enable debug logging in development
 });
 ```
 
 Note that the endpoint should match the domain of the page where the script will run, so that the correct `Session-Id` can be passed to the backend.
-
-The singleton pattern ensures that telemetry is initialized once globally and can be accessed from anywhere in your application without needing to pass the instance around.
 
 ## React hooks
 
@@ -51,7 +52,7 @@ export const sendCustomEvent = (eventType: string, data?: CustomEventData) => {
 };
 ```
 
-Now you should be able to create and send custom events with something like this:
+Now you'll be able to create and send custom events with something like the following:
 
 ```jsx
 import { useSendCustomEvent } from './hooks/useSendCustomEvent';
