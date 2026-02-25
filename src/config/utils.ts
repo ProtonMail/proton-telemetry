@@ -11,4 +11,10 @@ export const createConfig = (
             ...defaultConfig.events,
             ...userConfig.events,
         },
+        urlSanitization: userConfig.urlSanitization
+            ? {
+                  ...defaultConfig.urlSanitization,
+                  ...userConfig.urlSanitization,
+              }
+            : defaultConfig.urlSanitization,
     }) as Required<TelemetryConfig>;

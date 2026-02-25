@@ -17,6 +17,7 @@ import {
     safePerformance,
     log,
     logWarn,
+    logError,
 } from './utils';
 import { createSendData } from './sendData';
 import { createConfig } from './config/utils';
@@ -139,13 +140,55 @@ export const createTelemetry = (
         },
     );
 
+    function applySanitization(rawUrl: string): URL | null {
+        if (!config.urlSanitization) {
+            return null;
+        }
+
+        let parsed: URL;
+        try {
+            parsed = new URL(rawUrl);
+        } catch {
+            return null;
+        }
+
+        if (config.urlSanitization.stripHash) {
+            parsed.hash = '';
+        }
+
+        if (config.urlSanitization.sanitizeUrl) {
+            try {
+                parsed = config.urlSanitization.sanitizeUrl(parsed);
+            } catch (error) {
+                logError(
+                    config.debug,
+                    'Error in urlSanitization.sanitizeUrl callback, using pre-callback URL:',
+                    error,
+                );
+            }
+        }
+
+        return parsed;
+    }
+
     function createEventPayload(
         eventType: EventType,
         eventData?: Record<string, unknown>,
         customData?: Record<string, unknown>,
     ): TelemetryEvent {
-        const location = safeWindow.location;
-        const urlParams = new URLSearchParams(location.search);
+        const rawLocation = safeWindow.location;
+
+        const sanitizedUrl = applySanitization(rawLocation.href);
+        const sanitizedHref = sanitizedUrl?.href ?? rawLocation.href;
+        const sanitizedPathname =
+            sanitizedUrl?.pathname ?? rawLocation.pathname;
+        const sanitizedSearch = sanitizedUrl?.search ?? rawLocation.search;
+
+        const sanitizedReferrerUrl = applySanitization(safeDocument.referrer);
+        const sanitizedReferrer =
+            sanitizedReferrerUrl?.href ?? safeDocument.referrer;
+
+        const urlParams = new URLSearchParams(sanitizedSearch);
         const queryParams: Record<string, string> = {};
         urlParams.forEach((value, key) => {
             if (key.startsWith('utm_')) {
@@ -174,6 +217,20 @@ export const createTelemetry = (
 
         const screen = safeWindow.screen;
 
+        // Sanitize URL fields in eventData (path, referrer, elementHref)
+        const sanitizedEventData = eventData ? { ...eventData } : {};
+        if (typeof sanitizedEventData.path === 'string') {
+            sanitizedEventData.path = sanitizedPathname;
+        }
+        if (typeof sanitizedEventData.referrer === 'string') {
+            sanitizedEventData.referrer = sanitizedReferrer;
+        }
+        if (typeof sanitizedEventData.elementHref === 'string') {
+            sanitizedEventData.elementHref =
+                applySanitization(sanitizedEventData.elementHref)?.href ??
+                sanitizedEventData.elementHref;
+        }
+
         return {
             zId: state.zId,
             messageId: generateMessageId(),
@@ -195,16 +252,16 @@ export const createTelemetry = (
                 browserLocale: state.userLanguage,
                 page: {
                     title: safeDocument.title,
-                    url: location.href,
-                    path: location.pathname,
-                    referrer: safeDocument.referrer,
-                    queryString: location.search,
+                    url: sanitizedHref,
+                    path: sanitizedPathname,
+                    referrer: sanitizedReferrer,
+                    queryString: sanitizedSearch,
                     queryParams,
                 },
                 referrer: {
                     type: '',
                     name: '',
-                    url: safeDocument.referrer,
+                    url: sanitizedReferrer,
                 },
                 screen: {
                     width: screen.width,
@@ -216,7 +273,7 @@ export const createTelemetry = (
                 features: customData?.features || Object.create(null),
             },
             properties: {
-                ...(eventData || {}),
+                ...sanitizedEventData,
                 data: customData,
             },
         };
