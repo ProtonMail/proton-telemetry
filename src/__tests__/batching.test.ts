@@ -166,6 +166,35 @@ describe('ProtonTelemetry - Event Batching', () => {
         expect(body.events[0].eventType).toBe('custom_event');
     });
 
+    // The flush on page unload was previously sent via navigator.sendBeacon
+    // which can't set custom headers, so the exit telemetry was rejected with HTTP 400.
+    // The flush must go through fetchWithHeaders to set x-pm-appversion
+    it('includes x-pm-appversion header in flush request', async () => {
+        const telemetry = ProtonTelemetry({
+            endpoint: 'https://telemetry.test.com',
+            appVersion: 'web-meet@0.4.15.2',
+            events: {
+                pageView: false,
+                click: false,
+                form: false,
+                performance: false,
+                visibility: false,
+                modal: false,
+            },
+        });
+
+        telemetry.sendCustomEvent('exit', { test: true });
+        telemetry.destroy();
+        await vi.advanceTimersByTimeAsync(FETCH_DELAY);
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        const init = mockFetch.mock.lastCall![1];
+        expect(init.keepalive).toBe(true);
+        expect(
+            (init.headers as Record<string, string>)['x-pm-appversion'],
+        ).toBe('web-meet@0.4.15.2');
+    });
+
     it('handles multiple successive events if second event is triggered after the fetch delay', async () => {
         const telemetry = ProtonTelemetry({
             endpoint: 'https://telemetry.test.com',
