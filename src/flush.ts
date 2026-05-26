@@ -1,5 +1,5 @@
 import type { QueuedEvent } from './types';
-import { fetchWithHeaders } from './utils';
+import { fetchWithHeaders, logError } from './utils';
 
 export async function flushQueue(
     endpoint: string,
@@ -15,30 +15,21 @@ export async function flushQueue(
     };
     const body = JSON.stringify(batchedEvents);
 
-    if (navigator.sendBeacon) {
-        try {
-            const blob = new Blob([body], { type: 'application/json' });
-            const success = navigator.sendBeacon(endpoint, blob);
-            if (success) {
-                eventQueue.length = 0;
-                return;
-            }
-        } catch {
-            // fall back to fetchWithHeaders
-        }
-    }
-
-    if (eventQueue.length > 0) {
-        try {
-            await fetchWithHeaders(endpoint, appVersion, uidHeader, {
-                method: 'POST',
-                body,
-                keepalive: true,
-            });
-            eventQueue.length = 0;
-        } catch {
-            // fail silently
-        }
+    // Use fetch with keepalive rather than navigator.sendBeacon
+    // because sendBeacon cannot set custom headers (x-pm-appversion)
+    try {
+        await fetchWithHeaders(endpoint, appVersion, uidHeader, {
+            method: 'POST',
+            body,
+            keepalive: true,
+        });
+        eventQueue.length = 0;
+    } catch (error) {
+        logError(
+            debug,
+            `Failed to flush ${batchedEvents.events.length} event(s) on page unload:`,
+            error,
+        );
     }
 }
 
