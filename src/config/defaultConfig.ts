@@ -1,4 +1,4 @@
-import type { TelemetryConfig } from '../types';
+import type { TelemetryConfig } from '../types/index.ts';
 
 export const defaultConfig: Partial<TelemetryConfig> = {
     debug: false,

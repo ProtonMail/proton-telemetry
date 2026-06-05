@@ -1,13 +1,13 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { createTelemetry as ProtonTelemetry } from '../telemetry';
-import { destroyTelemetryInstance } from '../singleton';
-import { getPageTitleOverride } from '../utils/storage';
-import { BATCH_DELAY } from '../constants';
+import { createTelemetry as ProtonTelemetry } from '../telemetry.ts';
+import { destroyTelemetryInstance } from '../singleton.ts';
+import { getPageTitleOverride } from '../utils/storage.ts';
+import { BATCH_DELAY } from '../constants.ts';
 import {
     createSessionStorageMock,
     createLocalStorageMock,
     createFetchMock,
-} from './helpers/mocks';
+} from './helpers/mocks.ts';
 
 describe('Page title override', () => {
     let sessionStorageMock: ReturnType<typeof createSessionStorageMock>;

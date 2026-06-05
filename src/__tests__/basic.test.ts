@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { createTelemetry as ProtonTelemetry } from '../telemetry';
-import { BATCH_DELAY } from '../constants';
+import { createTelemetry as ProtonTelemetry } from '../telemetry.ts';
+import { BATCH_DELAY } from '../constants.ts';
 
 describe('ProtonTelemetry - Basic Functionality', () => {
     let telemetry: ReturnType<typeof ProtonTelemetry>;

@@ -1,14 +1,14 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createTelemetry as ProtonTelemetry } from '../telemetry';
-import { BATCH_DELAY, MAX_RETRIES } from '../constants';
+import { createTelemetry as ProtonTelemetry } from '../telemetry.ts';
+import { BATCH_DELAY, MAX_RETRIES } from '../constants.ts';
 import {
     createFetchMock,
     createConsoleMocks,
     setupBasicTelemetryTest,
     setupTimers,
     cleanupMocks,
-} from './helpers';
-import { createBasicTelemetryConfig } from './helpers/fixtures';
+} from './helpers/index.ts';
+import { createBasicTelemetryConfig } from './helpers/fixtures.ts';
 
 // Tests focusing on the retry mechanism triggered by sendData
 describe('ProtonTelemetry - Retry Logic', () => {

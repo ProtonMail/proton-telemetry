@@ -1,14 +1,14 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createTelemetry as ProtonTelemetry } from '../telemetry';
-import { BATCH_DELAY } from '../constants';
+import { createTelemetry as ProtonTelemetry } from '../telemetry.ts';
+import { BATCH_DELAY } from '../constants.ts';
 import {
     createFetchMock,
     createConsoleMocks,
     setupBasicTelemetryTest,
     setupTimers,
     cleanupMocks,
-} from './helpers';
-import { createBasicTelemetryConfig } from './helpers/fixtures';
+} from './helpers/index.ts';
+import { createBasicTelemetryConfig } from './helpers/fixtures.ts';
 
 describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
     let mockFetch: ReturnType<typeof vi.fn>;

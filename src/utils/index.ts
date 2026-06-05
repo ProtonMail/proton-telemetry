@@ -1,2 +1,2 @@
-export * from './browserAPI';
-export * from './helpers';
+export * from './browserAPI.ts';
+export * from './helpers.ts';

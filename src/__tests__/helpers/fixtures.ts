@@ -1,4 +1,4 @@
-import type { TelemetryConfig } from '../../types';
+import type { TelemetryConfig } from '../../types/index.ts';
 
 // Common telemetry configurations for testing
 export const createBasicTelemetryConfig = (

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getFormattedUTCTimezone } from '../utils';
+import { getFormattedUTCTimezone } from '../utils/index.ts';
 
 describe('getFormattedUTCTimezone', () => {
     let originalDate: DateConstructor;

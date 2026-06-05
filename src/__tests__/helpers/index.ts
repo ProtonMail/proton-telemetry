@@ -1,2 +1,2 @@
-export * from './mocks';
-export * from './setup';
+export * from './mocks.ts';
+export * from './setup.ts';

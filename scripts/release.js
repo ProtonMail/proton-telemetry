@@ -1,6 +1,6 @@
-const fs = require('fs');
-const { execSync } = require('child_process');
-const path = require('path');
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const PACKAGE_JSON_PATH = path.resolve(__dirname, '..', 'package.json');
 

@@ -1,5 +1,5 @@
-import type { PageType } from '../types';
-import { safeDocument } from './browserAPI';
+import type { PageType } from '../types/index.ts';
+import { safeDocument } from './browserAPI.ts';
 
 export const generateMessageId = (): string => {
     if (

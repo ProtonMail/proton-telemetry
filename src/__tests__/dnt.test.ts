@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { createTelemetry as ProtonTelemetry } from '../telemetry';
+import { createTelemetry as ProtonTelemetry } from '../telemetry.ts';
 
 describe('ProtonTelemetry - Do Not Track Functionality', () => {
     let localStorageMock: {

@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
     createCrossDomainStorage,
     handleCrossDomainTelemetryId,
-} from '../crossDomainStorage';
+} from '../crossDomainStorage.ts';
 import {
     setupCrossDomainTest,
     cleanupMocks,
     createCookieMock,
     createLocalStorageMock,
     createWindowMock,
-} from './helpers';
+} from './helpers/index.ts';
 
 describe('CrossDomainStorage', () => {
     let storage: ReturnType<typeof createCrossDomainStorage>;

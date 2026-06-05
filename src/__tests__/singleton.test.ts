@@ -4,8 +4,8 @@ import {
     ProtonTelemetrySingleton,
     destroyTelemetryInstance,
     getExistingTelemetryInstance,
-} from '../singleton';
-import type { TelemetryConfig } from '../types';
+} from '../singleton.ts';
+import type { TelemetryConfig } from '../types/index.ts';
 
 // Mock the telemetry creation to avoid actual telemetry calls in tests
 vi.mock('../telemetry', () => ({
