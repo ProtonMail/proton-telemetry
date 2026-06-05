@@ -1,7 +1,7 @@
 // Cross-domain ID management using cookies for Proton domains
 // Supports any subdomain under proton.me, protonvpn.com, and proton.black
-import type { CrossDomainStorageConfig } from './types';
-import { log, logError, logWarn } from './utils';
+import type { CrossDomainStorageConfig } from './types/index.ts';
+import { log, logError, logWarn } from './utils/index.ts';
 
 interface DomainInfo {
     rootDomain: string;

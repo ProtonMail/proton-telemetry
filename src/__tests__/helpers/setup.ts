@@ -8,7 +8,7 @@ import {
     setupNavigatorMock,
     setupPerformanceMock,
     setupProcessMock,
-} from './mocks';
+} from './mocks.ts';
 
 // Global setup
 export const setupGlobalMocks = () => {

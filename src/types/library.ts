@@ -1,4 +1,4 @@
-import type { TelemetryEvent } from './events';
+import type { TelemetryEvent } from './events.ts';
 
 export interface TelemetryConfig {
     /** The endpoint to send telemetry events to. */

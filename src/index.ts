@@ -1,12 +1,12 @@
 export {
     createTelemetry as ProtonTelemetry,
     createCustomEventSender,
-} from './telemetry';
+} from './telemetry.ts';
 
 export type {
     CreateTelemetryReturn,
     CreateTelemetryType as ProtonTelemetryType,
-} from './telemetry';
+} from './telemetry.ts';
 export type {
     TelemetryConfig,
     CrossDomainStorageConfig,
@@ -14,7 +14,7 @@ export type {
     EventType,
     CustomEventType,
     StandardEventType,
-} from './types';
+} from './types/index.ts';
 
 // Singleton exports
 export {
@@ -25,4 +25,4 @@ export {
     sendCustomEvent,
     sendPageView,
     setTelemetryEnabled,
-} from './singleton';
+} from './singleton.ts';

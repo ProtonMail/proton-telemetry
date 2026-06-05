@@ -1,20 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTelemetry } from '../telemetry';
+import { createTelemetry } from '../telemetry.ts';
 import {
     setTelemetryEnabled,
     getTelemetryInstance,
     destroyTelemetryInstance,
-} from '../singleton';
-import { getTelemetryEnabled } from '../utils/storage';
-import { BATCH_DELAY } from '../constants';
+} from '../singleton.ts';
+import { getTelemetryEnabled } from '../utils/storage.ts';
+import { BATCH_DELAY } from '../constants.ts';
 import {
     createLocalStorageMock,
     createSessionStorageMock,
     createFetchMock,
     setupNavigatorMock,
     setupPerformanceMock,
-} from './helpers/mocks';
-import { createBasicTelemetryConfig } from './helpers/fixtures';
+} from './helpers/mocks.ts';
+import { createBasicTelemetryConfig } from './helpers/fixtures.ts';
 
 describe('Telemetry enabled controls', () => {
     let mockFetch: ReturnType<typeof createFetchMock>;

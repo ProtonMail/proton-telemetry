@@ -1,5 +1,5 @@
-import { createEventSender } from './eventSender';
-import { createPerformanceObserver } from './performanceObserver';
+import { createEventSender } from './eventSender.ts';
+import { createPerformanceObserver } from './performanceObserver.ts';
 import type {
     TelemetryConfig,
     TelemetryEvent,
@@ -7,7 +7,7 @@ import type {
     EventType,
     CustomEventType,
     StandardEventType,
-} from './types';
+} from './types/index.ts';
 import {
     generateMessageId,
     getFormattedUTCTimezone,
@@ -18,21 +18,21 @@ import {
     log,
     logWarn,
     logError,
-} from './utils';
-import { createSendData } from './sendData';
-import { createConfig } from './config/utils';
+} from './utils/index.ts';
+import { createSendData } from './sendData.ts';
+import { createConfig } from './config/utils.ts';
 import {
     handleCrossDomainTelemetryId,
     createCrossDomainStorage,
     initCrossDomainTracking,
-} from './crossDomainStorage';
+} from './crossDomainStorage.ts';
 import {
     setPageTitleOverride,
     clearPageTitleOverride,
     getTelemetryEnabled,
     setTelemetryEnabled as setTelemetryEnabledStorage,
-} from './utils/storage';
-import { attachPageHideFlush, flushQueue } from './flush';
+} from './utils/storage.ts';
+import { attachPageHideFlush, flushQueue } from './flush.ts';
 
 export type CreateTelemetryReturn = {
     sendPageView: () => void;

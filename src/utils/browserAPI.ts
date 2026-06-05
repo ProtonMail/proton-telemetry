@@ -1,5 +1,5 @@
-import { logError } from './helpers';
-import { getPageTitleOverride } from './storage';
+import { logError } from './helpers.ts';
+import { getPageTitleOverride } from './storage.ts';
 
 export const safeDocument = {
     get title(): string {

@@ -5,14 +5,14 @@ import type {
     PageViewEventData,
     ModalEventData,
     ExitEventData,
-} from './types';
+} from './types/index.ts';
 import {
     getPageType,
     getABTestFeatures,
     safeDocument,
     safeWindow,
     safePerformance,
-} from './utils';
+} from './utils/index.ts';
 
 export const createEventSender = (
     sendData: (

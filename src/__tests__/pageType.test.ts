@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { createTelemetry as ProtonTelemetry } from '../telemetry';
-import type { PageType } from '../types';
+import { createTelemetry as ProtonTelemetry } from '../telemetry.ts';
+import type { PageType } from '../types/index.ts';
 
 describe('ProtonTelemetry - Page Type Detection', () => {
     let telemetry: ReturnType<typeof ProtonTelemetry>;

@@ -1,5 +1,5 @@
-import { createTelemetry, type CreateTelemetryReturn } from './telemetry';
-import type { TelemetryConfig } from './types';
+import { createTelemetry, type CreateTelemetryReturn } from './telemetry.ts';
+import type { TelemetryConfig } from './types/index.ts';
 
 const GLOBAL_TELEMETRY_KEY = '__PROTON_TELEMETRY_INSTANCE__';
 

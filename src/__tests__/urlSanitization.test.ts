@@ -1,17 +1,17 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { createTelemetry as ProtonTelemetry } from '../telemetry';
-import { destroyTelemetryInstance } from '../singleton';
-import { BATCH_DELAY } from '../constants';
+import { createTelemetry as ProtonTelemetry } from '../telemetry.ts';
+import { destroyTelemetryInstance } from '../singleton.ts';
+import { BATCH_DELAY } from '../constants.ts';
 import type {
     TelemetryEvent,
     PageViewEventData,
     ClickEventData,
-} from '../types';
+} from '../types/index.ts';
 import {
     createSessionStorageMock,
     createLocalStorageMock,
     createFetchMock,
-} from './helpers/mocks';
+} from './helpers/mocks.ts';
 
 describe('URL sanitization', () => {
     let localStorageMock: ReturnType<typeof createLocalStorageMock>;

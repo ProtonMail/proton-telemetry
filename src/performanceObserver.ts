@@ -1,5 +1,9 @@
-import type { EventType, EventData, PerformanceEventData } from './types';
-import { logWarn } from './utils';
+import type {
+    EventData,
+    EventType,
+    PerformanceEventData,
+} from './types/index.ts';
+import { logWarn } from './utils/index.ts';
 
 export function createPerformanceObserver(
     sendData: (eventType: EventType, eventData: EventData) => Promise<boolean>,

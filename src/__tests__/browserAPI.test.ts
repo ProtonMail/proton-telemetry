@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createTelemetry } from '../telemetry';
+import { createTelemetry } from '../telemetry.ts';
 
 describe('Browser API availability tests', () => {
     let mockFetch: ReturnType<typeof vi.fn>;

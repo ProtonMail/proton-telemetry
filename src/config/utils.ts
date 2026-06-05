@@ -1,5 +1,5 @@
-import type { TelemetryConfig } from '../types';
-import { defaultConfig } from './defaultConfig';
+import type { TelemetryConfig } from '../types/index.ts';
+import { defaultConfig } from './defaultConfig.ts';
 
 export const createConfig = (
     userConfig: TelemetryConfig,

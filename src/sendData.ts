@@ -5,10 +5,10 @@ import type {
     QueuedEvent,
     SendDataConfig,
     TelemetryEvent,
-} from './types';
-import { fetchWithHeaders } from './utils';
-import { BATCH_DELAY, MAX_RETRIES } from './constants';
-import { log, logError } from './utils';
+} from './types/index.ts';
+import { fetchWithHeaders } from './utils/index.ts';
+import { BATCH_DELAY, MAX_RETRIES } from './constants.ts';
+import { log, logError } from './utils/index.ts';
 
 interface SendDataState {
     eventQueue: QueuedEvent[];

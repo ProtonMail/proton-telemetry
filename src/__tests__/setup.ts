@@ -1,4 +1,4 @@
-import { setupGlobalMocks } from './helpers/setup';
+import { setupGlobalMocks } from './helpers/setup.ts';
 
 // Call global setup
 setupGlobalMocks();

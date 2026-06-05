@@ -1,5 +1,5 @@
-import type { QueuedEvent } from './types';
-import { fetchWithHeaders, logError } from './utils';
+import type { QueuedEvent } from './types/index.ts';
+import { fetchWithHeaders, logError } from './utils/index.ts';
 
 export async function flushQueue(
     endpoint: string,
