@@ -25,6 +25,12 @@ ProtonTelemetrySingleton({
     urlSanitization: { // optional: stripHash defaults to true; set to false if your app needs hash data in telemetry
         sanitizeUrl: (url) => { url.pathname = url.pathname.replace(/\/user\/[^/]+/, '/user/[redacted]'); return url; }, // optional: modify and return the URL instance
     },
+    events: { // opt in to the automatic events you want; all default to false
+        pageView: true,
+        click: true,
+        performance: true,
+        exit: true,
+    },
     debug: import.meta.env.DEV, // optional: enable debug logging in development
 });
 ```

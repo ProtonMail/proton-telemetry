@@ -24,9 +24,6 @@ const DEFAULT_CONFIG: Required<CrossDomainStorageConfig> = {
     maxAge: 300,
 };
 
-// Add legacy cookie name for temporary backward compatibility
-const LEGACY_COOKIE_NAME = 'aId';
-
 // Detect current domain configuration
 const detectDomainInfo = (): DomainInfo | null => {
     try {
@@ -61,16 +58,6 @@ const createCookieValue = (zId: string): string => {
     return btoa(JSON.stringify(data));
 };
 
-// Temporary: legacy aId cookie value creator
-const createLegacyCookieValue = (aId: string): string => {
-    const data = {
-        aId,
-        timestamp: Date.now(),
-        version: 1,
-    };
-    return btoa(JSON.stringify(data));
-};
-
 // Parse encoded cookie value
 const parseCookieValue = (
     cookieValue: string,
@@ -85,28 +72,6 @@ const parseCookieValue = (
             typeof data.timestamp === 'number'
         ) {
             return { zId: data.zId, timestamp: data.timestamp };
-        }
-
-        return null;
-    } catch {
-        return null;
-    }
-};
-
-// Temporary: parse legacy aId cookie value
-const parseLegacyCookieValue = (
-    cookieValue: string,
-): { aId: string; timestamp: number } | null => {
-    try {
-        const decoded = atob(cookieValue);
-        const data = JSON.parse(decoded);
-
-        if (
-            data &&
-            typeof data.aId === 'string' &&
-            typeof data.timestamp === 'number'
-        ) {
-            return { aId: data.aId, timestamp: data.timestamp };
         }
 
         return null;
@@ -202,17 +167,7 @@ export const createCrossDomainStorage = (
             );
             document.cookie = newCookieString;
 
-            // Temporary: also write legacy aId cookie to support old consumers during migration
-            const legacyCookieValue = createLegacyCookieValue(zId);
-            const legacyCookieString = buildCookieString(
-                legacyCookieValue,
-                LEGACY_COOKIE_NAME,
-                finalConfig.maxAge,
-                domainInfo.rootDomain,
-            );
-            document.cookie = legacyCookieString;
-
-            log(debug, 'Set telemetry ID cookies (zId + legacy aId)');
+            log(debug, 'Set telemetry ID cookie (zId)');
 
             return verifyWriteSuccess(zId);
         } catch (error) {
@@ -227,7 +182,6 @@ export const createCrossDomainStorage = (
                 return null;
             }
 
-            // Prefer new zId cookie
             const zIdCookieValue = getCookieValue(finalConfig.cookieName);
             if (zIdCookieValue) {
                 const parsed = parseCookieValue(zIdCookieValue);
@@ -241,25 +195,6 @@ export const createCrossDomainStorage = (
                         parsed.zId,
                     );
                     return parsed.zId;
-                }
-            }
-
-            // Fallback: try legacy aId cookie
-            const legacyCookieValue = getCookieValue(LEGACY_COOKIE_NAME);
-            if (legacyCookieValue) {
-                const parsedLegacy = parseLegacyCookieValue(legacyCookieValue);
-                if (
-                    parsedLegacy &&
-                    !isExpired(parsedLegacy.timestamp, finalConfig.maxAge)
-                ) {
-                    log(
-                        debug,
-                        'Retrieved telemetry ID from legacy aId cookie:',
-                        parsedLegacy.aId,
-                    );
-                    // Migrate by writing both cookies
-                    setTelemetryId(parsedLegacy.aId);
-                    return parsedLegacy.aId;
                 }
             }
 
@@ -279,10 +214,6 @@ export const createCrossDomainStorage = (
 
             if (typeof localStorage !== 'undefined') {
                 localStorage.setItem(storageKey, zId);
-                // temporary, for legacy consumers
-                if (storageKey !== 'aId') {
-                    localStorage.setItem('aId', zId);
-                }
                 log(debug, 'Transferred telemetry ID to localStorage');
             }
 
@@ -319,18 +250,8 @@ export const createCrossDomainStorage = (
                 'expires=Thu, 01 Jan 1970 00:00:00 GMT',
             ].join('; ');
 
-            // Expire legacy aId cookie
-            const expiredLegacyCookie = [
-                `${LEGACY_COOKIE_NAME}=`,
-                'Max-Age=0',
-                `Domain=.${domainInfo.rootDomain}`,
-                'Path=/',
-                'expires=Thu, 01 Jan 1970 00:00:00 GMT',
-            ].join('; ');
-
             document.cookie = expiredZIdCookie;
-            document.cookie = expiredLegacyCookie;
-            log(debug, 'Cleaned up telemetry ID cookies');
+            log(debug, 'Cleaned up telemetry ID cookie');
         } catch (error) {
             log(debug, 'Error cleaning up cookie:', error);
         }

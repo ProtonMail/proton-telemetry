@@ -295,8 +295,6 @@ export const createTelemetry = (
 
                 if (crossDomainZId && crossDomainZId !== stored) {
                     localStorage.setItem(storageKey, crossDomainZId);
-                    // write aId for legacy consumers
-                    localStorage.setItem('aId', crossDomainZId);
                     stored = crossDomainZId;
                 }
 
@@ -309,8 +307,6 @@ export const createTelemetry = (
 
                 const newId = generateMessageId();
                 localStorage.setItem(storageKey, newId);
-                // write aId for legacy consumers
-                localStorage.setItem('aId', newId);
                 state.zId = newId;
 
                 // The cookie for the next hop will be set on 'visibilitychange'
@@ -377,8 +373,8 @@ export const createTelemetry = (
             click: Boolean(config.events.click),
             form: Boolean(config.events.form),
             performance: Boolean(config.events.performance),
-            visibility: Boolean(config.events.visibility),
             modal: Boolean(config.events.modal),
+            exit: Boolean(config.events.exit),
         },
         shouldSend,
     );

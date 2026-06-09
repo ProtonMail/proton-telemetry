@@ -19,14 +19,15 @@ export interface TelemetryConfig {
     crossDomain?: CrossDomainStorageConfig;
     /** Configuration for URL sanitization. */
     urlSanitization?: UrlSanitizationConfig;
-    /** Configuration for event sending. */
+    /** Configuration for event sending. All events default to false (opt-in). */
     events?: {
         pageView?: boolean;
         click?: boolean;
         form?: boolean;
         performance?: boolean;
-        visibility?: boolean;
         modal?: boolean;
+        /** Page engagement tracking: time-on-page and active-time, sent on page exit. */
+        exit?: boolean;
     };
 }
 

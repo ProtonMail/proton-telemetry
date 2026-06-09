@@ -104,8 +104,8 @@ describe('ProtonTelemetry - Event Batching', () => {
                 click: false,
                 form: false,
                 performance: false,
-                visibility: false,
                 modal: false,
+                exit: false,
             },
         });
 
@@ -140,8 +140,8 @@ describe('ProtonTelemetry - Event Batching', () => {
                 click: false,
                 form: false,
                 performance: false,
-                visibility: false,
                 modal: false,
+                exit: false,
             },
         });
 
@@ -178,8 +178,8 @@ describe('ProtonTelemetry - Event Batching', () => {
                 click: false,
                 form: false,
                 performance: false,
-                visibility: false,
                 modal: false,
+                exit: false,
             },
         });
 
@@ -204,8 +204,8 @@ describe('ProtonTelemetry - Event Batching', () => {
                 click: false,
                 form: false,
                 performance: false,
-                visibility: false,
                 modal: false,
+                exit: false,
             },
         });
 
@@ -246,8 +246,8 @@ describe('ProtonTelemetry - Event Batching', () => {
                 click: false,
                 form: false,
                 performance: false,
-                visibility: false,
                 modal: false,
+                exit: false,
             },
         });
 

@@ -138,6 +138,7 @@ describe('URL sanitization', () => {
             endpoint: 'https://example.com/telemetry',
             appVersion: 'test@1.0.0',
             urlSanitization: { stripHash: true },
+            events: { pageView: true },
         });
 
         telemetry.sendPageView();

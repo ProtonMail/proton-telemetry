@@ -27,8 +27,8 @@ export const createEventSender = (
         click: boolean;
         form: boolean;
         performance: boolean;
-        visibility: boolean;
         modal: boolean;
+        exit: boolean;
     },
     shouldSend: () => boolean,
 ) => {
@@ -37,6 +37,7 @@ export const createEventSender = (
         activeStartTime: safeDocument.hidden ? null : safePerformance.now(),
         totalActiveTime: 0,
         isPageVisible: !safeDocument.hidden,
+        hasExited: false,
     };
 
     function resetTime() {
@@ -46,6 +47,7 @@ export const createEventSender = (
             : state.pageStartTime;
         state.totalActiveTime = 0;
         state.isPageVisible = !safeDocument.hidden;
+        state.hasExited = false;
     }
 
     function handleVisibilityChange() {
@@ -63,7 +65,12 @@ export const createEventSender = (
     }
 
     function handlePageExit() {
+        if (!config.exit) return;
         if (!shouldSend()) return;
+        // Both beforeunload and pagehide fire on a single navigation: guard so
+        // exit is emitted once per page life (reset by resetTime on SPA nav).
+        if (state.hasExited) return;
+        state.hasExited = true;
 
         const now = safePerformance.now();
         const timeOnPage = now - state.pageStartTime;
@@ -110,44 +117,49 @@ export const createEventSender = (
         void sendData('form_submit');
     }
 
-    const hasDocumentListeners = safeDocument.addEventListener(
-        'visibilitychange',
-        handleVisibilityChange,
-    );
+    const hasDocumentListeners =
+        config.exit &&
+        safeDocument.addEventListener(
+            'visibilitychange',
+            handleVisibilityChange,
+        );
     const hasWindowListeners =
+        config.exit &&
         safeWindow.addEventListener('beforeunload', handlePageExit) &&
         safeWindow.addEventListener('pagehide', handlePageExit);
+
+    function handlePageShow(event: Event) {
+        try {
+            const ps = event as PageTransitionEvent;
+            if (ps.persisted && config.pageView && shouldSend()) {
+                // Send a page_view event when restored from BFCache
+                const location = safeWindow.location;
+                const pageViewData: PageViewEventData = {
+                    pageTitle: safeDocument.title,
+                    pageType: getPageType(location.pathname),
+                    path: location.pathname,
+                    referrer: safeDocument.referrer,
+                };
+                void sendData(
+                    'page_view',
+                    pageViewData,
+                    { features: getABTestFeatures() } as Record<
+                        string,
+                        unknown
+                    >,
+                    'high',
+                );
+                resetTime();
+            }
+        } catch {}
+    }
 
     // listen for pageshow for BFCache restores
     let hasPageShowListener = false;
     try {
         hasPageShowListener = safeWindow.addEventListener(
             'pageshow',
-            (event: Event) => {
-                try {
-                    const ps = event as PageTransitionEvent;
-                    if (ps.persisted && config.pageView && shouldSend()) {
-                        // Send a page_view event when restored from BFCache
-                        const location = safeWindow.location;
-                        const pageViewData: PageViewEventData = {
-                            pageTitle: safeDocument.title,
-                            pageType: getPageType(location.pathname),
-                            path: location.pathname,
-                            referrer: safeDocument.referrer,
-                        };
-                        void sendData(
-                            'page_view',
-                            pageViewData,
-                            { features: getABTestFeatures() } as Record<
-                                string,
-                                unknown
-                            >,
-                            'high',
-                        );
-                        resetTime();
-                    }
-                } catch {}
-            },
+            handlePageShow,
         );
     } catch {}
 
@@ -214,7 +226,7 @@ export const createEventSender = (
                 safeWindow.removeEventListener('pagehide', handlePageExit);
             }
             if (hasPageShowListener) {
-                safeWindow.removeEventListener('pageshow', () => {});
+                safeWindow.removeEventListener('pageshow', handlePageShow);
             }
             if (config.click) {
                 safeDocument.removeEventListener('click', sendClick);
