@@ -7,11 +7,11 @@ export const defaultConfig: Partial<TelemetryConfig> = {
     urlSanitization: { stripHash: true },
     telemetryEnabled: true,
     events: {
-        pageView: true,
-        click: true,
+        pageView: false,
+        click: false,
         form: false,
-        performance: true,
-        visibility: true,
+        performance: false,
         modal: false,
+        exit: false,
     },
 };

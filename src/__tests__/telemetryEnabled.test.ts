@@ -31,8 +31,8 @@ describe('Telemetry enabled controls', () => {
                 click: false,
                 form: false,
                 performance: false,
-                visibility: false,
                 modal: false,
+                exit: false,
             },
         });
 

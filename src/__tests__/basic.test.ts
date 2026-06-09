@@ -50,6 +50,7 @@ describe('ProtonTelemetry - Basic Functionality', () => {
         telemetry = ProtonTelemetry({
             endpoint: 'https://telemetry.test.com',
             appVersion: 'appVersion',
+            events: { pageView: true },
         });
 
         vi.spyOn(telemetry, 'sendPageView');

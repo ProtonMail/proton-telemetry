@@ -12,8 +12,8 @@ export const createBasicTelemetryConfig = (
         click: false,
         form: false,
         performance: false,
-        visibility: false,
         modal: false,
+        exit: false,
     },
     ...overrides,
 });
@@ -29,8 +29,8 @@ export const createFullTelemetryConfig = (
         click: true,
         form: true,
         performance: true,
-        visibility: true,
         modal: true,
+        exit: true,
     },
     ...overrides,
 });

@@ -221,6 +221,7 @@ describe('Browser API availability tests', () => {
             const telemetry = createTelemetry({
                 endpoint: 'https://api.example.com/telemetry',
                 appVersion: '1.0.0',
+                events: { pageView: true },
             });
 
             expect(() => telemetry.sendPageView()).not.toThrow();
@@ -357,6 +358,7 @@ describe('Browser API availability tests', () => {
             const telemetry = createTelemetry({
                 endpoint: 'https://api.example.com/telemetry',
                 appVersion: '1.0.0',
+                events: { pageView: true },
             });
 
             telemetry.sendPageView();
