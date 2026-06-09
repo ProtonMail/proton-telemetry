@@ -1,6 +1,6 @@
 {
     "name": "@protontech/telemetry",
-    "version": "1.0.5",
+    "version": "2.0.0",
     "description": "Frontend telemetry library for Proton websites",
     "type": "module",
     "exports": {
