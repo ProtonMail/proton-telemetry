@@ -1,7 +1,32 @@
+import { beforeEach, vi } from 'vitest';
 import { setupGlobalMocks } from './helpers/setup.ts';
 
 // Call global setup
 setupGlobalMocks();
+
+// Default no-op fetch so tests that don't explicitly mock it never perform real
+// network requests. Without this, happy-dom logs spam ENOTFOUND
+beforeEach(() => {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(new Response(null, { status: 200 })),
+    );
+
+    // Silence the library's [Telemetry] own debug logging (expected when tests
+    // run with debug: true) to keep test output clean, but let other console
+    // output through for debugging
+    const isTelemetryLog = (args: unknown[]) =>
+        typeof args[0] === 'string' && args[0].startsWith('[Telemetry]');
+
+    (['log', 'warn', 'error'] as const).forEach((method) => {
+        const original = console[method].bind(console);
+        vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+            if (!isTelemetryLog(args)) {
+                original(...args);
+            }
+        });
+    });
+});
 
 // Mock crypto API
 Object.defineProperty(global, 'crypto', {
