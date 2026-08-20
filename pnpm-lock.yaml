@@ -34,8 +34,8 @@ importers:
         specifier: ^5.5.6
         version: 5.5.6(eslint-config-prettier@10.1.8(eslint@10.4.1))(eslint@10.4.1)(prettier@3.8.3)
       happy-dom:
-        specifier: 20.10.2
-        version: 20.10.2
+        specifier: 20.11.6
+        version: 20.11.6
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -47,7 +47,7 @@ importers:
         version: 8.2.2(@types/node@22.20.1)(esbuild@0.25.2)
       vitest:
         specifier: 4.1.8
-        version: 4.1.8(@types/node@22.20.1)(@vitest/coverage-v8@4.1.8)(happy-dom@20.10.2)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.25.2))
+        version: 4.1.8(@types/node@22.20.1)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.25.2))
 
 packages:
 
@@ -707,8 +707,8 @@ packages:
     resolution: {integrity: sha512-XxwI8EOhVQgWp6iDL+3b0r86f4d6AX6zSU55HfB4ydCEuXLXc5FcYeOu+nnGftS4TEju/11rt4KJPTMgbfmv4A==}
     engines: {node: '>=10.13.0'}
 
-  happy-dom@20.10.2:
-    resolution: {integrity: sha512-5p9Sxis3eowDJKqx90QCsgbNA02XXqJ59NOHvD4V6cxp+rP4d/xOyVx7uY3hS8hiUbY1VeiFH8lbJ81AyuDVLQ==}
+  happy-dom@20.11.6:
+    resolution: {integrity: sha512-Hldbg8AdAa5a5oDcZpjqnGitp7JB0hqWmfv/8qr+kft4vzSD8BHsbdRfzYvL/0QcbKcURC/yyoygbeDQarPvYg==}
     engines: {node: '>=20.0.0'}
 
   has-flag@4.0.0:
@@ -1459,7 +1459,7 @@ snapshots:
       obug: 2.1.2
       std-env: 4.1.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.8(@types/node@22.20.1)(@vitest/coverage-v8@4.1.8)(happy-dom@20.10.2)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.25.2))
+      vitest: 4.1.8(@types/node@22.20.1)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.25.2))
 
   '@vitest/expect@4.1.8':
     dependencies:
@@ -1704,7 +1704,7 @@ snapshots:
     dependencies:
       is-glob: 4.0.3
 
-  happy-dom@20.10.2:
+  happy-dom@20.11.6:
     dependencies:
       '@types/node': 22.20.1
       '@types/whatwg-mimetype': 3.0.2
@@ -1975,7 +1975,7 @@ snapshots:
       esbuild: 0.25.2
       fsevents: 2.3.3
 
-  vitest@4.1.8(@types/node@22.20.1)(@vitest/coverage-v8@4.1.8)(happy-dom@20.10.2)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.25.2)):
+  vitest@4.1.8(@types/node@22.20.1)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.25.2)):
     dependencies:
       '@vitest/expect': 4.1.8
       '@vitest/mocker': 4.1.8(vite@8.2.2(@types/node@22.20.1)(esbuild@0.25.2))
@@ -2000,7 +2000,7 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.20.1
       '@vitest/coverage-v8': 4.1.8(vitest@4.1.8)
-      happy-dom: 20.10.2
+      happy-dom: 20.11.6
     transitivePeerDependencies:
       - msw
 
