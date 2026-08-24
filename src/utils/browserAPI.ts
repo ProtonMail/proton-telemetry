@@ -225,8 +225,7 @@ export const safeNavigator = {
     },
 
     get sendBeacon():
-        | ((url: string | URL, data?: BodyInit | null) => boolean)
-        | undefined {
+        ((url: string | URL, data?: BodyInit | null) => boolean) | undefined {
         try {
             return typeof navigator !== 'undefined'
                 ? navigator.sendBeacon?.bind(navigator)
