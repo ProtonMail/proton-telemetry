@@ -128,7 +128,7 @@ export const getABTestFeatures = (): Record<string, string> => {
 };
 
 // Try to parse meaningful text from an element, or use attributes if available (for use with click events)
-export const getElementText = (element: HTMLElement): string | undefined => {
+export const getElementText = (element: Element): string | undefined => {
     if (!element) return undefined;
 
     // Try semantic attributes first
@@ -143,15 +143,6 @@ export const getElementText = (element: HTMLElement): string | undefined => {
 
     const name = element.getAttribute('name');
     if (name) return truncateText(name);
-
-    if (
-        (element instanceof HTMLInputElement ||
-            element instanceof HTMLButtonElement ||
-            element instanceof HTMLSelectElement) &&
-        element.value
-    ) {
-        return truncateText(element.value);
-    }
 
     // Get element's parent heading if it's a nearby sibling or ancestor
     const heading = getClosestHeading(element);
@@ -209,7 +200,7 @@ const truncateText = (text: string | undefined): string | undefined => {
 };
 
 // Helper to find the closest heading that might describe this element
-function getClosestHeading(element: HTMLElement): HTMLElement | null {
+function getClosestHeading(element: Element): Element | null {
     // Check siblings first
     let sibling = element.previousElementSibling;
     while (sibling) {

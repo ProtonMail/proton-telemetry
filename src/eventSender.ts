@@ -9,6 +9,7 @@ import type {
 import {
     getPageType,
     getABTestFeatures,
+    getElementText,
     safeDocument,
     safeWindow,
     safePerformance,
@@ -88,8 +89,15 @@ export const createEventSender = (
     function sendClick(event: Event) {
         if (!shouldSend()) return;
 
-        const target = event.target as HTMLElement;
-        if (!target) return;
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+
+        if (target.closest('input, textarea, select')) return;
+
+        const element = target.closest(
+            '[data-analytics-id], a, button, [role="button"]',
+        );
+        if (!element) return;
 
         const mouseEvent = event as MouseEvent;
         const xPos =
@@ -98,14 +106,21 @@ export const createEventSender = (
             typeof mouseEvent.pageY === 'number' ? mouseEvent.pageY : 0;
 
         const clickData: ClickEventData = {
-            elementType: target.tagName.toLowerCase(),
-            elementId: target.id || undefined,
-            elementHref: (target as HTMLAnchorElement).href || undefined,
+            elementType: element.tagName.toLowerCase(),
+            elementId:
+                element.getAttribute('data-analytics-id') ||
+                element.id ||
+                undefined,
+            elementText: getElementText(element),
+            elementHref:
+                element instanceof HTMLAnchorElement ? element.href : undefined,
             xPos,
             yPos,
         };
 
-        void sendData('click', clickData);
+        void sendData('click', clickData, {
+            features: getABTestFeatures(),
+        });
     }
 
     function sendFormSubmit(event: Event) {
