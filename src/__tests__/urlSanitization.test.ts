@@ -13,6 +13,8 @@ import {
     createFetchMock,
 } from './helpers/mocks.ts';
 
+const domDocument = document;
+
 describe('URL sanitization', () => {
     let localStorageMock: ReturnType<typeof createLocalStorageMock>;
     let mockFetch: ReturnType<typeof createFetchMock>;
@@ -268,12 +270,15 @@ describe('URL sanitization', () => {
         expect(clickCall).toBeDefined();
         const clickHandler = clickCall![1] as EventListener;
 
+        const link = domDocument.createElement('a');
+        link.href = 'https://app.example.com/room/other#pricing';
+        link.id = 'jump-link-fallback';
+        link.dataset.analyticsId = 'pricing-jump';
+        const child = domDocument.createElement('span');
+        link.append(child);
+
         clickHandler({
-            target: {
-                tagName: 'A',
-                id: 'test-link',
-                href: 'https://app.example.com/room/other#sensitive-hash',
-            },
+            target: child,
             pageX: 100,
             pageY: 200,
         } as unknown as Event);
@@ -285,6 +290,7 @@ describe('URL sanitization', () => {
         expect(event).toBeDefined();
 
         const props = event!.properties as ClickEventData;
+        expect(props.elementId).toBe('pricing-jump');
         expect(props.elementHref).toBe('https://app.example.com/room/other');
     });
 });
