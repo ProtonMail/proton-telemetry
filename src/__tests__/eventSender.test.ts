@@ -66,6 +66,7 @@ describe('createEventSender Click events', () => {
             elementText: 'View pricing',
             elementHref: link.href,
         });
+        expect(sendData.mock.calls[0]![3]).toBe('high');
     });
 
     it('falls back to the resolved element DOM id', () => {

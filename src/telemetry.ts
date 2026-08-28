@@ -32,7 +32,7 @@ import {
     getTelemetryEnabled,
     setTelemetryEnabled as setTelemetryEnabledStorage,
 } from './utils/storage.ts';
-import { attachPageHideFlush, flushQueue } from './flush.ts';
+import { attachPageLifecycleFlush, flushQueue } from './flush.ts';
 
 export type CreateTelemetryReturn = {
     sendPageView: () => void;
@@ -383,7 +383,7 @@ export const createTelemetry = (
         config.debug,
     );
 
-    let detachPageHideFlush: () => void = () => {};
+    let detachPageLifecycleFlush: () => void = () => {};
 
     if (shouldSendTelemetry) {
         if (config.events.pageView) {
@@ -398,7 +398,7 @@ export const createTelemetry = (
             performanceObserver.initializeObserver();
         }
 
-        // Add a pagehide flush to reduce event loss on navigation
+        // Add a page lifecycle flush to reduce event loss on navigation
         try {
             const flush = async () => {
                 try {
@@ -417,7 +417,7 @@ export const createTelemetry = (
                     // ignore flush errors
                 }
             };
-            detachPageHideFlush = attachPageHideFlush(flush);
+            detachPageLifecycleFlush = attachPageLifecycleFlush(flush);
         } catch {
             // ignore addEventListener issues
         }
@@ -449,7 +449,7 @@ export const createTelemetry = (
         }
 
         eventSender.destroy();
-        detachPageHideFlush();
+        detachPageLifecycleFlush();
         state.destroyCrossDomainTracking();
 
         // Clean up cross-domain cookie

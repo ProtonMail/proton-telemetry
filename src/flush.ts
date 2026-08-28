@@ -10,8 +10,9 @@ export async function flushQueue(
 ): Promise<void> {
     if (eventQueue.length === 0) return;
 
+    const queuedEvents = eventQueue.splice(0, eventQueue.length);
     const batchedEvents = {
-        events: eventQueue.map((queuedEvent) => queuedEvent.event),
+        events: queuedEvents.map((queuedEvent) => queuedEvent.event),
     };
     const body = JSON.stringify(batchedEvents);
 
@@ -23,8 +24,8 @@ export async function flushQueue(
             body,
             keepalive: true,
         });
-        eventQueue.length = 0;
     } catch (error) {
+        eventQueue.unshift(...queuedEvents);
         logError(
             debug,
             `Failed to flush ${batchedEvents.events.length} event(s) on page unload:`,
@@ -33,26 +34,45 @@ export async function flushQueue(
     }
 }
 
-export function attachPageHideFlush(flush: () => Promise<void>): () => void {
-    if (
-        typeof window !== 'undefined' &&
-        'addEventListener' in window &&
-        typeof window.addEventListener === 'function'
-    ) {
-        const handler = () => {
+export function attachPageLifecycleFlush(
+    flush: () => Promise<void>,
+): () => void {
+    const flushHandler = () => {
+        void flush();
+    };
+    const visibilityChangeHandler = () => {
+        if (document.visibilityState === 'hidden') {
             void flush();
-        };
-        window.addEventListener('pagehide', handler);
-        window.addEventListener('beforeunload', handler);
-        return () => {
-            try {
-                window.removeEventListener('pagehide', handler);
-                window.removeEventListener('beforeunload', handler);
-            } catch {
-                // ignore
-            }
-        };
+        }
+    };
+
+    const canListenToWindow =
+        typeof window !== 'undefined' &&
+        typeof window.addEventListener === 'function';
+    const canListenToDocument =
+        typeof document !== 'undefined' &&
+        typeof document.addEventListener === 'function';
+
+    if (canListenToWindow) {
+        window.addEventListener('pagehide', flushHandler);
+    }
+    if (canListenToDocument) {
+        document.addEventListener('visibilitychange', visibilityChangeHandler);
     }
 
-    return () => {};
+    return () => {
+        try {
+            if (canListenToWindow) {
+                window.removeEventListener('pagehide', flushHandler);
+            }
+            if (canListenToDocument) {
+                document.removeEventListener(
+                    'visibilitychange',
+                    visibilityChangeHandler,
+                );
+            }
+        } catch {
+            // ignore
+        }
+    };
 }
