@@ -68,8 +68,8 @@ export const createEventSender = (
     function handlePageExit() {
         if (!config.exit) return;
         if (!shouldSend()) return;
-        // Both beforeunload and pagehide fire on a single navigation: guard so
-        // exit is emitted once per page life (reset by resetTime on SPA nav).
+        // Guard repeated pagehide notifications so exit is emitted once per page
+        // life (reset by resetTime on SPA nav).
         if (state.hasExited) return;
         state.hasExited = true;
 
@@ -118,9 +118,14 @@ export const createEventSender = (
             yPos,
         };
 
-        void sendData('click', clickData, {
-            features: getABTestFeatures(),
-        });
+        void sendData(
+            'click',
+            clickData,
+            {
+                features: getABTestFeatures(),
+            },
+            'high',
+        );
     }
 
     function sendFormSubmit(event: Event) {
@@ -139,9 +144,7 @@ export const createEventSender = (
             handleVisibilityChange,
         );
     const hasWindowListeners =
-        config.exit &&
-        safeWindow.addEventListener('beforeunload', handlePageExit) &&
-        safeWindow.addEventListener('pagehide', handlePageExit);
+        config.exit && safeWindow.addEventListener('pagehide', handlePageExit);
 
     function handlePageShow(event: Event) {
         try {
@@ -237,7 +240,6 @@ export const createEventSender = (
                 );
             }
             if (hasWindowListeners) {
-                safeWindow.removeEventListener('beforeunload', handlePageExit);
                 safeWindow.removeEventListener('pagehide', handlePageExit);
             }
             if (hasPageShowListener) {
