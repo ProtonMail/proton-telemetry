@@ -13,10 +13,17 @@ stages:
 
 workflow:
     rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
         - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
         - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
         - if: $CI_COMMIT_TAG
         - when: never
+
+.non_scheduled:
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+          when: never
+        - when: on_success
 
 include:
     - component: 'gitlab.protontech.ch/proton/devops/cicd-components/kits/devsecops/semgrep@0.0.43'
@@ -24,18 +31,19 @@ include:
           runner-tag: shared-small
           stage: security
       rules:
+          - if: $CI_PIPELINE_SOURCE == "schedule"
+            when: never
           - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
           - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
           - if: $CI_COMMIT_TAG
-          - if: $CI_PIPELINE_SOURCE == "schedule"
-            when: never
 
 .pnpm_setup: &pnpm_setup
     before_script:
-        - npm install -g pnpm
+        - npm install -g pnpm@11.24.0
 
 install:
     <<: *pnpm_setup
+    extends: .non_scheduled
     stage: install
     script:
         - pnpm install --frozen-lockfile
@@ -47,6 +55,7 @@ install:
 
 lint:
     <<: *pnpm_setup
+    extends: .non_scheduled
     stage: lint
     script:
         - pnpm run lint
@@ -55,6 +64,7 @@ lint:
 
 build:
     <<: *pnpm_setup
+    extends: .non_scheduled
     stage: build
     script:
         - pnpm install --frozen-lockfile
@@ -67,9 +77,18 @@ build:
 
 test:
     <<: *pnpm_setup
+    extends: .non_scheduled
     stage: test
     script:
         - pnpm test
     dependencies:
         - install
         - build
+
+dependency-audit:
+    <<: *pnpm_setup
+    stage: security
+    script:
+        - pnpm audit --audit-level high
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
