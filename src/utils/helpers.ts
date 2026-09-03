@@ -15,7 +15,8 @@ export const generateMessageId = (): string => {
     // - the result is converted to a hexadecimal string
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
         // random number 0-15, truncated to integer
-        const r = (Math.random() * 16) | 0;
+        // This ID only correlates telemetry events and is not used as a security token.
+        const r = (Math.random() * 16) | 0; // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator, gitlab.nodejs_scan.javascript-crypto-rule-node_insecure_random_generator, rules_lgpl_javascript_crypto_rule-node-insecure-random-generator
         // replace 'x' in the string above with a random number 0-15 and 'y' with random number 8-11
         const v = c === 'x' ? r : (r & 0x3) | 0x8;
         // convert to hex string
@@ -40,7 +41,7 @@ export const fetchWithHeaders = async (
             : (init?.headers as HeadersInit) || {};
 
     // The url comes from developer-controlled configuration (config.endpoint), not from direct user input
-    // semgrep-ignore-line [gitlab.nodejs_scan.javascript-ssrf-rule-node_ssrf]
+    // nosemgrep: gitlab.nodejs_scan.javascript-ssrf-rule-node_ssrf
     return fetch(input, {
         ...init,
         credentials: 'include',
