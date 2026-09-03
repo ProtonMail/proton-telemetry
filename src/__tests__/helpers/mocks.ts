@@ -27,12 +27,15 @@ export const createLocalStorageMock = (
     let store = { ...initialStorage };
 
     return {
-        getItem: vi.fn((key: string) => store[key] ?? null),
+        // Test-only in-memory storage intentionally models arbitrary Storage keys.
+        getItem: vi.fn(
+            (key: string) => store[key] ?? null, // nosemgrep: gitlab.eslint.detect-object-injection
+        ),
         setItem: vi.fn((key: string, value: string) => {
-            store[key] = value;
+            store[key] = value; // nosemgrep: gitlab.eslint.detect-object-injection
         }),
         removeItem: vi.fn((key: string) => {
-            delete store[key];
+            delete store[key]; // nosemgrep: gitlab.eslint.detect-object-injection
         }),
         clear: vi.fn(() => {
             store = {};
@@ -51,12 +54,15 @@ export const createSessionStorageMock = (
     let store = { ...initialStorage };
 
     return {
-        getItem: vi.fn((key: string) => store[key] ?? null),
+        // Test-only in-memory storage intentionally models arbitrary Storage keys.
+        getItem: vi.fn(
+            (key: string) => store[key] ?? null, // nosemgrep: gitlab.eslint.detect-object-injection
+        ),
         setItem: vi.fn((key: string, value: string) => {
-            store[key] = value;
+            store[key] = value; // nosemgrep: gitlab.eslint.detect-object-injection
         }),
         removeItem: vi.fn((key: string) => {
-            delete store[key];
+            delete store[key]; // nosemgrep: gitlab.eslint.detect-object-injection
         }),
         clear: vi.fn(() => {
             store = {};

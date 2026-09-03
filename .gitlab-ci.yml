@@ -30,6 +30,7 @@ include:
       inputs:
           runner-tag: shared-small
           stage: security
+          allowed-to-fail: false
       rules:
           - if: $CI_PIPELINE_SOURCE == "schedule"
             when: never

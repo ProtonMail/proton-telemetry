@@ -19,7 +19,8 @@ beforeEach(() => {
         typeof args[0] === 'string' && args[0].startsWith('[Telemetry]');
 
     (['log', 'warn', 'error'] as const).forEach((method) => {
-        const original = console[method].bind(console);
+        // `method` is restricted to the fixed list above, not user-controlled.
+        const original = console[method].bind(console); // nosemgrep: gitlab.eslint.detect-object-injection
         vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
             if (!isTelemetryLog(args)) {
                 original(...args);
