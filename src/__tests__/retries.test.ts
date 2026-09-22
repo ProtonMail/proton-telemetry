@@ -1,6 +1,8 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createTelemetry as ProtonTelemetry } from '../telemetry.ts';
+import { createSendData } from '../sendData.ts';
 import { BATCH_DELAY, MAX_RETRIES } from '../constants.ts';
+import type { TelemetryEvent } from '../types/index.ts';
 import {
     createFetchMock,
     createConsoleMocks,
@@ -9,6 +11,39 @@ import {
     cleanupMocks,
 } from './helpers/index.ts';
 import { createBasicTelemetryConfig } from './helpers/fixtures.ts';
+
+function createSendDataHarness() {
+    let messageId = 0;
+    const pendingEvents = {
+        persist: vi.fn(),
+        read: vi.fn(() => []),
+        remove: vi.fn(),
+        clear: vi.fn(),
+    };
+    const result = createSendData(
+        {
+            endpoint: 'https://telemetry.test.com',
+            appVersion: 'appVersion',
+            debug: true,
+            dryRun: false,
+        },
+        {
+            eventQueue: [],
+            batchTimeout: null,
+        },
+        {
+            pendingEvents,
+            shouldSend: () => true,
+            createEventPayload: (eventType) =>
+                ({
+                    messageId: `message-${++messageId}`,
+                    eventType,
+                }) as TelemetryEvent,
+        },
+    );
+
+    return { ...result, pendingEvents };
+}
 
 // Tests focusing on the retry mechanism triggered by sendData
 describe('ProtonTelemetry - Retry Logic', () => {
@@ -20,6 +55,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
     beforeEach(() => {
         cleanupTimers = setupTimers();
         setupBasicTelemetryTest();
+        sessionStorage.clear();
 
         mockFetch = createFetchMock();
         const consoleMocks = createConsoleMocks();
@@ -55,6 +91,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
         // Initial attempt after batch delay
         await vi.advanceTimersByTimeAsync(BATCH_DELAY);
         expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockFetch.mock.calls[0]![1].keepalive).toBe(true);
 
         // Check console log for retry message
         expect(consoleSpyLog).toHaveBeenCalledWith(
@@ -67,6 +104,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
         await vi.advanceTimersByTimeAsync(1);
         expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(mockFetch.mock.calls[1]![1].keepalive).toBe(true);
 
         // Verify the event data integrity on the successful retry
         const lastCall = mockFetch.mock.lastCall;
@@ -76,7 +114,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
         expect(body.events[0].eventType).toBe('test_event');
     });
 
-    it('drops events after max retries on 429/503 with Retry-After', async () => {
+    it('retains events after max retries on 429/503 with Retry-After', async () => {
         const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         const retryAfterSeconds = 1;
@@ -116,7 +154,7 @@ describe('ProtonTelemetry - Retry Logic', () => {
         expect(mockFetch).toHaveBeenCalledTimes(MAX_RETRIES + 1);
         expect(consoleSpyError).toHaveBeenCalledWith(
             '[Telemetry]',
-            `Max retries (${MAX_RETRIES}) reached after 429 response. Dropping events.`,
+            `Max retries (${MAX_RETRIES}) reached after 429 response. Events remain persisted.`,
         );
 
         // Verify no more retries happen
@@ -273,5 +311,90 @@ describe('ProtonTelemetry - Retry Logic', () => {
         expect(secondBody.events[0].messageId).toBe(
             thirdBody.events[0].messageId,
         );
+    });
+
+    it('drains unrelated events on their normal schedules while a batch waits to retry', async () => {
+        mockFetch
+            .mockResolvedValueOnce(
+                new Response(null, {
+                    status: 429,
+                    headers: { 'retry-after': '10' },
+                }),
+            )
+            .mockResolvedValue(new Response(null, { status: 200 }));
+        const { sendData } = createSendDataHarness();
+
+        void sendData('waiting_batch');
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
+
+        void sendData('unrelated_event');
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY - 1);
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+
+        await vi.advanceTimersByTimeAsync(1);
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(
+            JSON.parse(mockFetch.mock.calls[1]![1].body).events[0].eventType,
+        ).toBe('unrelated_event');
+
+        await sendData('urgent_event', undefined, undefined, 'high');
+
+        expect(mockFetch).toHaveBeenCalledTimes(3);
+        expect(
+            JSON.parse(mockFetch.mock.calls[2]![1].body).events[0].eventType,
+        ).toBe('urgent_event');
+    });
+
+    it('cancels all scheduled retries without touching persistence', async () => {
+        mockFetch.mockResolvedValue(
+            new Response(null, {
+                status: 429,
+                headers: { 'retry-after': '1' },
+            }),
+        );
+        const { sendData, cancelPendingSends, pendingEvents } =
+            createSendDataHarness();
+
+        void sendData('first_scheduled_retry');
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
+        void sendData('second_scheduled_retry');
+        await vi.advanceTimersByTimeAsync(BATCH_DELAY);
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+
+        cancelPendingSends();
+        await vi.advanceTimersByTimeAsync(1_000);
+
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(pendingEvents.persist).toHaveBeenCalledTimes(2);
+        expect(pendingEvents.remove).not.toHaveBeenCalled();
+        expect(pendingEvents.clear).not.toHaveBeenCalled();
+    });
+
+    it('prevents an in-flight retry response from scheduling after cancellation', async () => {
+        let resolveRequest!: (response: Response) => void;
+        mockFetch.mockImplementationOnce(
+            () =>
+                new Promise<Response>((resolve) => {
+                    resolveRequest = resolve;
+                }),
+        );
+        const { sendData, cancelPendingSends } = createSendDataHarness();
+
+        const sendResult = sendData('cancel_in_flight_retry');
+        vi.advanceTimersByTime(BATCH_DELAY);
+        await Promise.resolve();
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+
+        cancelPendingSends();
+        resolveRequest(
+            new Response(null, {
+                status: 429,
+                headers: { 'retry-after': '1' },
+            }),
+        );
+        await sendResult;
+        await vi.advanceTimersByTimeAsync(1_000);
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 });

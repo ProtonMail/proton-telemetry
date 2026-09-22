@@ -9,6 +9,8 @@ export function createPerformanceObserver(
     sendData: (eventType: EventType, eventData: EventData) => Promise<boolean>,
     debug: boolean,
 ) {
+    const observers = new Set<PerformanceObserver>();
+
     return {
         initializeObserver: () => {
             if (
@@ -43,9 +45,14 @@ export function createPerformanceObserver(
                 });
 
                 observer.observe({ entryTypes: ['navigation'] });
+                observers.add(observer);
             } else {
                 logWarn(debug, 'PerformanceObserver API is not supported');
             }
+        },
+        disconnectObservers: () => {
+            observers.forEach((observer) => observer.disconnect());
+            observers.clear();
         },
     };
 }

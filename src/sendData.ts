@@ -6,6 +6,7 @@ import type {
     SendDataConfig,
     TelemetryEvent,
 } from './types/index.ts';
+import type { PendingEventsStore } from './pendingEvents.ts';
 import { fetchWithHeaders } from './utils/index.ts';
 import { BATCH_DELAY, MAX_RETRIES } from './constants.ts';
 import { log, logError } from './utils/index.ts';
@@ -13,10 +14,11 @@ import { log, logError } from './utils/index.ts';
 interface SendDataState {
     eventQueue: QueuedEvent[];
     batchTimeout: NodeJS.Timeout | null;
-    retryCount: number;
 }
 
 interface SendDataDependencies {
+    pendingEvents: PendingEventsStore;
+    shouldSend: () => boolean;
     createEventPayload: (
         eventType: EventType,
         eventData?: EventData,
@@ -24,14 +26,33 @@ interface SendDataDependencies {
     ) => TelemetryEvent;
 }
 
+interface SendBatchOptions {
+    keepalive?: boolean;
+    retryCount?: number;
+    generation?: number;
+}
+
 export function createSendData(
     config: SendDataConfig,
     state: SendDataState,
     deps: SendDataDependencies,
 ) {
+    const retryTimeouts = new Set<NodeJS.Timeout>();
+    let retryGeneration = 0;
+
     async function sendBatch(
         eventsToProcess?: TelemetryEvent[],
+        options: SendBatchOptions = {},
     ): Promise<boolean> {
+        if (!deps.shouldSend()) {
+            return false;
+        }
+
+        const {
+            keepalive = true,
+            retryCount = 0,
+            generation = retryGeneration,
+        } = options;
         let itemsForThisBatch: TelemetryEvent[];
         const isRetryAttempt = !!eventsToProcess;
 
@@ -58,16 +79,19 @@ export function createSendData(
                 {
                     method: 'POST',
                     body: JSON.stringify({ events: itemsForThisBatch }),
-                    keepalive: true,
+                    keepalive,
                 },
             );
 
+            if (generation !== retryGeneration) {
+                return false;
+            }
+
             if (response.ok) {
-                if (config.debug && state.retryCount > 0 && isRetryAttempt) {
+                deps.pendingEvents.remove(itemsForThisBatch);
+                if (config.debug && retryCount > 0 && isRetryAttempt) {
                     log(config.debug, 'Batch sent successfully after retries.');
                 }
-                // Queue was already modified by splice. Reset retryCount if this was a successful retry.
-                if (isRetryAttempt) state.retryCount = 0;
                 return true;
             }
 
@@ -83,18 +107,27 @@ export function createSendData(
                         ? delaySeconds * 1000
                         : null;
 
-                if (delayMs !== null && state.retryCount < MAX_RETRIES) {
-                    state.retryCount++;
+                if (delayMs !== null && retryCount < MAX_RETRIES) {
+                    const nextRetryCount = retryCount + 1;
                     if (config.debug) {
                         log(
                             config.debug,
-                            `Server responded with ${response.status}. Retrying after ${delayMs}ms (attempt #${state.retryCount}) based on Retry-After header.`,
+                            `Server responded with ${response.status}. Retrying after ${delayMs}ms (attempt #${nextRetryCount}) based on Retry-After header.`,
                         );
                     }
-                    setTimeout(() => {
+                    const retryTimeout = setTimeout(() => {
+                        retryTimeouts.delete(retryTimeout);
+                        if (generation !== retryGeneration) {
+                            return;
+                        }
                         // retry with the same (spliced) itemsForThisBatch
-                        void sendBatch(itemsForThisBatch);
+                        void sendBatch(itemsForThisBatch, {
+                            keepalive,
+                            retryCount: nextRetryCount,
+                            generation,
+                        });
                     }, delayMs);
+                    retryTimeouts.add(retryTimeout);
                     return false;
                 } else {
                     // Max retries reached or invalid Retry-After header
@@ -102,17 +135,16 @@ export function createSendData(
                         if (delayMs === null) {
                             log(
                                 config.debug,
-                                `Server responded with ${response.status} but invalid Retry-After header ('${retryAfterHeader}'). Dropping events.`,
+                                `Server responded with ${response.status} but invalid Retry-After header ('${retryAfterHeader}'). Events remain persisted.`,
                             );
                         } else {
                             logError(
                                 config.debug,
-                                `Max retries (${MAX_RETRIES}) reached after ${response.status} response. Dropping events.`,
+                                `Max retries (${MAX_RETRIES}) reached after ${response.status} response. Events remain persisted.`,
                             );
                         }
                     }
-                    // Events were already spliced, already dropped.
-                    state.retryCount = 0;
+                    // Events were already spliced but remain persisted.
                     return false;
                 }
             } else {
@@ -120,24 +152,26 @@ export function createSendData(
                 if (config.debug) {
                     logError(
                         config.debug,
-                        `Server responded with status ${response.status} without a valid Retry-After header. Dropping events.`,
+                        `Server responded with status ${response.status} without a valid Retry-After header. Events remain persisted.`,
                     );
                 }
-                // Events were already spliced, already dropped.
-                state.retryCount = 0;
+                // Events were already spliced but remain persisted.
                 return false;
             }
         } catch (error) {
+            if (generation !== retryGeneration) {
+                return false;
+            }
+
             // Do not retry on network errors
             if (config.debug) {
                 logError(
                     config.debug,
-                    'Network error occurred. Dropping events.',
+                    'Network error occurred. Events remain persisted.',
                     error,
                 );
             }
-            // Events were already spliced, already dropped.
-            state.retryCount = 0;
+            // Events were already spliced but remain persisted.
             return false;
         }
     }
@@ -155,10 +189,11 @@ export function createSendData(
             return true;
         }
 
+        deps.pendingEvents.persist(event);
         state.eventQueue.push({ event, priority });
 
-        // Send immediately for high-priority events when not retrying
-        if (priority === 'high' && state.retryCount === 0) {
+        // Send immediately for high-priority events
+        if (priority === 'high') {
             if (state.batchTimeout !== null) {
                 clearTimeout(state.batchTimeout);
                 state.batchTimeout = null;
@@ -166,8 +201,8 @@ export function createSendData(
             return await sendBatch();
         }
 
-        if (state.batchTimeout === null && state.retryCount === 0) {
-            // Only schedule a new batch if one isn't already pending or retrying
+        if (state.batchTimeout === null) {
+            // Only schedule a new batch if one isn't already pending
             return new Promise((resolve) => {
                 state.batchTimeout = setTimeout(async () => {
                     state.batchTimeout = null; // Clear timeout before sending
@@ -175,11 +210,21 @@ export function createSendData(
                 }, BATCH_DELAY);
             });
         } else {
-            // An existing batch timeout or retry is in progress.
+            // An existing batch timeout is in progress.
             // The event is queued and will be picked up when sendBatch is next called without args.
             return Promise.resolve(true); // Indicate event was queued
         }
     }
 
-    return sendData;
+    function cancelPendingSends(): void {
+        retryGeneration++;
+        retryTimeouts.forEach(clearTimeout);
+        retryTimeouts.clear();
+        if (state.batchTimeout !== null) {
+            clearTimeout(state.batchTimeout);
+            state.batchTimeout = null;
+        }
+    }
+
+    return { sendData, sendBatch, cancelPendingSends };
 }
