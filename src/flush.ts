@@ -1,4 +1,5 @@
 import type { QueuedEvent } from './types/index.ts';
+import type { PendingEventsStore } from './pendingEvents.ts';
 import { fetchWithHeaders, logError } from './utils/index.ts';
 
 export async function flushQueue(
@@ -7,7 +8,10 @@ export async function flushQueue(
     uidHeader: string | undefined,
     debug: boolean,
     eventQueue: QueuedEvent[],
+    pendingEvents: PendingEventsStore,
+    shouldSend: () => boolean,
 ): Promise<void> {
+    if (!shouldSend()) return;
     if (eventQueue.length === 0) return;
 
     const queuedEvents = eventQueue.splice(0, eventQueue.length);
@@ -19,12 +23,22 @@ export async function flushQueue(
     // Use fetch with keepalive rather than navigator.sendBeacon
     // because sendBeacon cannot set custom headers (x-pm-appversion)
     try {
-        await fetchWithHeaders(endpoint, appVersion, uidHeader, {
-            method: 'POST',
-            body,
-            keepalive: true,
-        });
+        const response = await fetchWithHeaders(
+            endpoint,
+            appVersion,
+            uidHeader,
+            {
+                method: 'POST',
+                body,
+                keepalive: true,
+            },
+        );
+        if (!shouldSend()) return;
+        if (response.ok) {
+            pendingEvents.remove(batchedEvents.events);
+        }
     } catch (error) {
+        if (!shouldSend()) return;
         eventQueue.unshift(...queuedEvents);
         logError(
             debug,

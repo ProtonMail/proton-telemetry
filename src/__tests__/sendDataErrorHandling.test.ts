@@ -19,6 +19,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
     beforeEach(() => {
         cleanupTimers = setupTimers();
         setupBasicTelemetryTest();
+        sessionStorage.clear();
 
         mockFetch = createFetchMock();
         const consoleMocks = createConsoleMocks();
@@ -33,7 +34,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
         consoleSpyError.mockRestore();
     });
 
-    it('does not retry on network error and drops events', async () => {
+    it('does not retry on network error and retains events', async () => {
         const telemetry = ProtonTelemetry(createBasicTelemetryConfig());
 
         mockFetch.mockRejectedValue(new Error('Network error'));
@@ -46,7 +47,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
 
         expect(consoleSpyError).toHaveBeenCalledWith(
             '[Telemetry]',
-            'Network error occurred. Dropping events.',
+            'Network error occurred. Events remain persisted.',
             expect.any(Error),
         );
 
@@ -86,7 +87,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
 
         expect(consoleSpyError).toHaveBeenCalledWith(
             '[Telemetry]',
-            'Server responded with status 429 without a valid Retry-After header. Dropping events.',
+            'Server responded with status 429 without a valid Retry-After header. Events remain persisted.',
         );
 
         // Advance time beyond any potential retry interval and verify no retry
@@ -113,7 +114,7 @@ describe('ProtonTelemetry - sendData Error Handling (No Retry)', () => {
 
         expect(consoleSpyError).toHaveBeenCalledWith(
             '[Telemetry]',
-            'Server responded with status 500 without a valid Retry-After header. Dropping events.',
+            'Server responded with status 500 without a valid Retry-After header. Events remain persisted.',
         );
 
         // Advance time beyond any potential retry interval and verify no retry

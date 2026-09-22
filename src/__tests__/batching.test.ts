@@ -15,6 +15,7 @@ describe('ProtonTelemetry - Event Batching', () => {
 
     beforeEach(() => {
         vi.useFakeTimers();
+        sessionStorage.clear();
 
         mockStorage = {
             zId: 'test-uuid', // Pre-set the zId to avoid random_uid_created event

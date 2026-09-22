@@ -20,6 +20,7 @@ import {
     logError,
 } from './utils/index.ts';
 import { createSendData } from './sendData.ts';
+import { createPendingEventsStore } from './pendingEvents.ts';
 import { createConfig } from './config/utils.ts';
 import {
     handleCrossDomainTelemetryId,
@@ -54,6 +55,7 @@ export const createTelemetry = (
     userConfig: TelemetryConfig,
 ): CreateTelemetryReturn => {
     const config = createConfig(userConfig);
+    let createdNewZId = false;
 
     const state = {
         zId: '',
@@ -63,7 +65,6 @@ export const createTelemetry = (
         isInitialized: false,
         eventQueue: [] as QueuedEvent[],
         batchTimeout: null as NodeJS.Timeout | null,
-        retryCount: 0,
         destroyCrossDomainTracking: () => {},
     };
 
@@ -81,6 +82,16 @@ export const createTelemetry = (
 
     // Cleanup tracking identifiers when telemetry is disabled
     function cleanupTrackingIdentifiers(): void {
+        if (!config.dryRun) {
+            cancelPendingSends();
+            state.eventQueue.length = 0;
+            try {
+                pendingEvents.clear();
+            } catch (error) {
+                log(config.debug, 'Error clearing pending events:', error);
+            }
+        }
+
         try {
             // Clean up localStorage zId
             if (
@@ -122,7 +133,15 @@ export const createTelemetry = (
         return true;
     }
 
-    const sendData = createSendData(
+    // Events sent under a session header are never persisted. Ingestion
+    // attaches a user id to any request carrying x-pm-uid, and logged-in apps
+    // create a new instance per session change in the same tab, so a
+    // restored event could be attributed to a session it was not created in.
+    const pendingEvents = createPendingEventsStore(
+        config.debug,
+        !config.uidHeader,
+    );
+    const { sendData, sendBatch, cancelPendingSends } = createSendData(
         {
             endpoint: config.endpoint,
             appVersion: config.appVersion,
@@ -130,12 +149,10 @@ export const createTelemetry = (
             dryRun: config.dryRun,
             uidHeader: config.uidHeader,
         },
+        state,
         {
-            eventQueue: state.eventQueue,
-            batchTimeout: state.batchTimeout,
-            retryCount: state.retryCount,
-        },
-        {
+            pendingEvents,
+            shouldSend,
             createEventPayload,
         },
     );
@@ -230,7 +247,6 @@ export const createTelemetry = (
                 applySanitization(sanitizedEventData.elementHref)?.href ??
                 sanitizedEventData.elementHref;
         }
-
         return {
             zId: state.zId,
             messageId: generateMessageId(),
@@ -308,12 +324,10 @@ export const createTelemetry = (
                 const newId = generateMessageId();
                 localStorage.setItem(storageKey, newId);
                 state.zId = newId;
+                createdNewZId = true;
 
                 // The cookie for the next hop will be set on 'visibilitychange'
 
-                if (shouldSend()) {
-                    void sendData('random_uid_created', {}, undefined, 'high');
-                }
                 return newId;
             } catch (error) {
                 logWarn(
@@ -363,6 +377,15 @@ export const createTelemetry = (
             config.crossDomain,
             config.debug,
         );
+        if (!config.dryRun) {
+            const restoredEvents = pendingEvents.read();
+            if (restoredEvents.length > 0) {
+                void sendBatch(restoredEvents, { keepalive: false });
+            }
+        }
+        if (createdNewZId && shouldSend()) {
+            void sendData('random_uid_created', {}, undefined, 'high');
+        }
     }
 
     const eventSender = createEventSender(
@@ -402,6 +425,7 @@ export const createTelemetry = (
         try {
             const flush = async () => {
                 try {
+                    if (!shouldSend()) return;
                     if (state.batchTimeout) {
                         clearTimeout(state.batchTimeout);
                         state.batchTimeout = null;
@@ -412,6 +436,8 @@ export const createTelemetry = (
                         config.uidHeader,
                         config.debug,
                         state.eventQueue,
+                        pendingEvents,
+                        shouldSend,
                     );
                 } catch {
                     // ignore flush errors
@@ -424,11 +450,13 @@ export const createTelemetry = (
     }
 
     const destroy = async (): Promise<void> => {
-        if (state.batchTimeout) {
-            clearTimeout(state.batchTimeout);
-        }
+        eventSender.destroy();
+        detachPageLifecycleFlush();
+        performanceObserver.disconnectObservers();
+        state.destroyCrossDomainTracking();
+        cancelPendingSends();
 
-        if (state.eventQueue.length > 0) {
+        if (shouldSend() && state.eventQueue.length > 0) {
             try {
                 await flushQueue(
                     config.endpoint,
@@ -436,6 +464,8 @@ export const createTelemetry = (
                     config.uidHeader,
                     config.debug,
                     state.eventQueue,
+                    pendingEvents,
+                    shouldSend,
                 );
             } catch (error) {
                 if (config.debug) {
@@ -447,10 +477,6 @@ export const createTelemetry = (
                 }
             }
         }
-
-        eventSender.destroy();
-        detachPageLifecycleFlush();
-        state.destroyCrossDomainTracking();
 
         // Clean up cross-domain cookie
         const crossDomainStorage = createCrossDomainStorage(
@@ -489,6 +515,9 @@ export const createTelemetry = (
         },
         setTelemetryEnabled: (enabled: boolean) => {
             setTelemetryEnabledStorage(enabled);
+            if (!enabled) {
+                cleanupTrackingIdentifiers();
+            }
         },
         destroy,
     };
