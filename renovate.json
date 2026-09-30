@@ -1,4 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "security:minimumReleaseAgeNpm"]
+  "extends": [
+    "config:recommended",
+    "security:minimumReleaseAgeNpm",
+    "group:allNonMajor",
+    "schedule:earlyMondays"
+  ],
+  "lockFileMaintenance": { "enabled": true }
 }
