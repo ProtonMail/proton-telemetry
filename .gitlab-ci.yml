@@ -27,7 +27,7 @@ workflow:
 
 .pnpm_setup: &pnpm_setup
     before_script:
-        - npm install -g pnpm@11.24.0
+        - npm install -g "$(node -p "require('./package.json').packageManager")"
 
 install:
     <<: *pnpm_setup
