@@ -6,3 +6,4 @@ export const PENDING_EVENTS_KEY = '__pt_queue__';
 export const PENDING_EVENT_TTL_MS = 3_600_000;
 export const PENDING_EVENTS_MAX_COUNT = 100;
 export const PENDING_EVENTS_VERSION = 1;
+export const AB_TEST_COOKIE_NAME = 'Features';

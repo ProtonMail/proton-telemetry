@@ -23,6 +23,7 @@ describe('createEventSender Click events', () => {
         document
             .querySelectorAll('meta[name^="ab-test:"]')
             .forEach((element) => element.remove());
+        document.cookie = 'Features=; Max-Age=0; Path=/';
     });
 
     function initClickSender(
@@ -127,6 +128,7 @@ describe('createEventSender Click events', () => {
         feature.name = 'ab-test:pricing';
         feature.content = 'variant-a';
         document.head.append(feature);
+        document.cookie = 'Features=pricing:variant-a; Path=/';
 
         const sendData = initClickSender();
         const button = document.createElement('button');
