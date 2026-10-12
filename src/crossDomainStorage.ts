@@ -1,7 +1,7 @@
 // Cross-domain ID management using cookies for Proton domains
 // Supports any subdomain under proton.me, protonvpn.com, and proton.black
 import type { CrossDomainStorageConfig } from './types/index.ts';
-import { log, logError, logWarn } from './utils/index.ts';
+import { getCookieValue, log, logError, logWarn } from './utils/index.ts';
 
 interface DomainInfo {
     rootDomain: string;
@@ -114,29 +114,6 @@ const buildCookieString = (
     }
 
     return parts.join('; ');
-};
-
-// Get raw cookie value
-const getCookieValue = (cookieName: string): string | null => {
-    try {
-        if (typeof document === 'undefined') {
-            return null;
-        }
-
-        const name = cookieName + '=';
-        const cookies = document.cookie.split(';');
-
-        for (let cookie of cookies) {
-            cookie = cookie.trim();
-            if (cookie.startsWith(name)) {
-                return cookie.substring(name.length);
-            }
-        }
-
-        return null;
-    } catch {
-        return null;
-    }
 };
 
 // Create a cross-domain storage instance

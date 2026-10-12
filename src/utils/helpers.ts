@@ -1,5 +1,6 @@
 import type { PageType } from '../types/index.ts';
 import { safeDocument } from './browserAPI.ts';
+import { AB_TEST_COOKIE_NAME } from '../constants.ts';
 
 export const generateMessageId = (): string => {
     if (
@@ -109,8 +110,34 @@ export const getFormattedUTCTimezone = (): string => {
     return `UTC${sign}${hours}:${minutes}`;
 };
 
+// Get raw cookie value
+export const getCookieValue = (cookieName: string): string | null => {
+    try {
+        if (typeof document === 'undefined') {
+            return null;
+        }
+
+        const name = cookieName + '=';
+        const cookies = document.cookie.split(';');
+
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name)) {
+                return cookie.substring(name.length);
+            }
+        }
+
+        return null;
+    } catch {
+        return null;
+    }
+};
+
 export const getABTestFeatures = (): Record<string, string> => {
     const features: Record<string, string> = {};
+    const assignments = (getCookieValue(AB_TEST_COOKIE_NAME) ?? '')
+        .split(',')
+        .map((entry) => entry.trim());
 
     const metaTags = safeDocument.querySelectorAll('meta[name^="ab-test:"]');
     if (metaTags && typeof metaTags.forEach === 'function') {
@@ -120,6 +147,9 @@ export const getABTestFeatures = (): Record<string, string> => {
 
             if (name && content) {
                 const testName = name.replace('ab-test:', '');
+                if (!assignments.includes(`${testName}:${content}`)) {
+                    return;
+                }
                 features[testName] = content;
             }
         });
