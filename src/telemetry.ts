@@ -10,6 +10,7 @@ import type {
 } from './types/index.ts';
 import {
     generateMessageId,
+    getABTestFeatures,
     getFormattedUTCTimezone,
     safeDocument,
     safeWindow,
@@ -511,7 +512,14 @@ export const createTelemetry = (
             customData?: Record<string, unknown>,
         ) => {
             if (!shouldSend()) return;
-            void sendData(eventType as CustomEventType, {}, customData);
+            void sendData(
+                eventType as CustomEventType,
+                {},
+                {
+                    features: getABTestFeatures(),
+                    ...customData,
+                },
+            );
         },
         setTelemetryEnabled: (enabled: boolean) => {
             setTelemetryEnabledStorage(enabled);
